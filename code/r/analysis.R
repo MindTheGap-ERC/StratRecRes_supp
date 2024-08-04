@@ -58,6 +58,10 @@ df$Pe = df$L * df$S / df$M
 df = dplyr::filter(df, !is.nan(df$Pe_min))
 df = dplyr::filter(df, df$S != 0)
 
+quantile(log10(df$Pe), c(0.025, 0.975))
+quantile(df$Pe, c(0.025, 0.975))
+median(log10(df$Pe))
+
 df$tavg_max = tavg_fun(Pe = df$Pe_min, S = df$S_min, L = df$L_max)
 df$tavg_min = tavg_fun(Pe = df$Pe_max,  S = df$S_max, L = df$L_min)
 
