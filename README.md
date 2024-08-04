@@ -14,9 +14,12 @@ ORCID: [0000-0003-1559-1838](https://orcid.org/0000-0003-1559-1838)
 
 * code : directory with matlab and r code
 * data : directory with data
+* renv : directory for the `renv` package
 * .gitignore : untracked files
+* .Rprofile : R session setup
 * LICENSE : Apache 2.0 license text
 * README : Readme file
+* renv.lock : lock file for `renv` package
 * StratRecRes_supp.Rproj : Rproject file
 
 ## Copyright
