@@ -10,6 +10,14 @@ email: n.h.hohmann [at] uu.nl
 Web page: [www.uu.nl/staff/NHohmann](https://www.uu.nl/staff/NHHohmann)  
 ORCID: [0000-0003-1559-1838](https://orcid.org/0000-0003-1559-1838)
 
+## Requirements
+
+R version >= 4.2 and Matlab 2006a or more recent.
+
+## Reproduction
+
+For details on reproduction of the study see REPRODUCEME.md.
+
 ## Repository structure
 
 * code : directory with matlab and r code
@@ -20,6 +28,7 @@ ORCID: [0000-0003-1559-1838](https://orcid.org/0000-0003-1559-1838)
 * LICENSE : Apache 2.0 license text
 * README : Readme file
 * renv.lock : lock file for `renv` package
+* REPRODUCEME.md : Instructions for reproduction of the results
 * StratRecRes_supp.Rproj : Rproject file
 
 ## Copyright
