@@ -30,9 +30,9 @@ disorder_fun = function(Pe, L){
 }
 
 
-## load empirical data
+#### load empirical data from SMLBase ####
 smlbase = read.csv(
-  file = "data/smlbase_raw/SMLBase v1_03.csv",
+  file = "data/smlbase/SMLBase v1_03.csv.csv",
   sep = ","
 )
 
@@ -50,16 +50,16 @@ df$M_max = pmax(smlbase$M1, smlbase$M1Max, smlbase$M1Min, smlbase$M2, na.rm = TR
 df$Pe_min = df$L_min * df$S_min / df$M_max
 df$Pe_max = df$L_max * df$S_max / df$M_min
 
+df = dplyr::filter(df, !(df$S_min <= 0 | df$S_max <= 0 | df$M_min <= 0 | df$M_max <= 0))
+
 df$S = 0.5 * (df$S_max + df$S_min)
 df$M = 0.5 * (df$M_max + df$M_min)
 df$L = 0.5 * (df$L_max + df$L_min)
 df$Pe = df$L * df$S / df$M
 
-df = dplyr::filter(df, !is.nan(df$Pe_min))
-df = dplyr::filter(df, df$S != 0)
 
 quantile(log10(df$Pe), c(0.025, 0.975))
-quantile(df$Pe, c(0.025, 0.975))
+
 median(log10(df$Pe))
 
 df$tavg_max = tavg_fun(Pe = df$Pe_min, S = df$S_min, L = df$L_max)
@@ -73,3 +73,45 @@ df$disorder_min = disorder_fun(Pe = df$Pe_max, L = df$L_min)
 hist(log10(df$tavg))
 hist(log10(df$disorder))
 hist(df$disorder)
+
+#### Load data from Matlab ####
+
+Pe_matlab = peclet_numbers
+tavg_dless_matlab = tavg_dimless
+
+Pe_min_log = min(log10(Pe_matlab))
+Pe_max_log = max(log10(Pe_matlab))
+Pe_step = 1/3
+
+a = hist(log10(df$Pe), plot = FALSE, freq = FALSE, breaks = seq(Pe_min_log, Pe_max_log, Pe_step))
+
+plot(a, add = TRUE)
+
+plot(a)
+lines(log10(pe_matlab), tavg_dless_matlab)
+inc_density = 2
+# 
+# plot(NULL,
+#      xlim = range(log10(Pe_matlab)),
+#      ylim = c(0, max(tavg_dless_matlab)) * 1.1,
+#      xlab = "Log10(Peclet number)",
+#      ylab = "")
+tavg_lwd = 3
+tavg_col = "black"
+png("figs/fig2.png")
+plot(log10(pe_matlab), tavg_dless_matlab, type = "l",
+     xlab = "log10(Peclet number)",
+     ylab = "Dimensionless time-averaging",
+     lwd = tavg_lwd,
+     col = tavg_col)
+par(new = TRUE)
+
+plot(a, freq = FALSE, axes = FALSE,
+     xlab = "",
+     ylab = "",
+     main = "")
+axis(4)
+mtext("Frequency", side = 4)
+
+par(new = FALSE)
+dev.off()

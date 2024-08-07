@@ -12,7 +12,7 @@ t_dimless = sort(unique([0:10^-6:0.001,1.6:10^-3:9,0.001:10^-4:1.6])); %times of
 depth_subdivisions = 200;
 d_dimless = linspace(0,1.1,depth_subdivisions); %depths of evaluation
 odeoptions = odeset('RelTol',1e-9,'AbsTol',1e-9); %settings for solution of pde
-peclet_numbers = 10.^(-5:1:3); % relation mixing /transport
+peclet_numbers = 10.^(-5:0.25:3); % relation mixing /transport
 
 % initialize storage
 tavg_below_sml = zeros(length(t_dimless), length(peclet_numbers));
