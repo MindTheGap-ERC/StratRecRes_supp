@@ -58,9 +58,10 @@ df$L = 0.5 * (df$L_max + df$L_min)
 df$Pe = df$L * df$S / df$M
 
 
-quantile(log10(df$Pe), c(0.025, 0.975))
+signif(quantile(log10(df$Pe), c(0.025, 0.975)), 3)
 
-median(log10(df$Pe))
+signif(median(log10(df$Pe)), 3)
+signif(quantile(log10(df$Pe), c(0.25, 0.75)), 3)
 
 df$tavg_max = tavg_fun(Pe = df$Pe_min, S = df$S_min, L = df$L_max)
 df$tavg_min = tavg_fun(Pe = df$Pe_max,  S = df$S_max, L = df$L_min)
@@ -114,4 +115,11 @@ axis(4)
 mtext("Frequency", side = 4)
 
 par(new = FALSE)
+dev.off()
+
+#### distribution of F_mix ####
+
+F_mix = approxfun(log10(Pe_matlab), tavg_dless_matlab)
+png("figs/supp_fig_1.png")
+hist(F_mix(df$Pe))
 dev.off()
