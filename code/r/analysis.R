@@ -128,7 +128,7 @@ dev.off()
 
 to = read.csv("data/tomasovych_et_al_2018/S0094837318000222sup002.csv", sep = ";")
 unique(to$Station)
-to2 = dplyr::filter(to, Station == "Po3 M13")
+to2 = dplyr::filter(to, Station == "Po4 M21")
 
 plot(to2$Age, to2$max..depth..cm.)
  df_te = data.frame("age" = to2$Age[!is.na(to2$Age)], "depth" = as.numeric(to2$max..depth..cm.)[!is.na(to2$Age)])
@@ -136,7 +136,11 @@ plot(to2$Age, to2$max..depth..cm.)
 ggplot(df_te, aes(x = age, y = depth)) + 
   geom_point() +
   scale_y_reverse() +
-  geom_density2d_filled(alpha = 0.5)
+  geom_density2d_filled(alpha = 0.5) +
+  xlim(0, 200) +
+  ggtitle("Core Po4 Particle distribution") +
+  xlab("Age [years]") +
+  ylab("Depth [cm]")
 ggsave("figs/tomasovych_et_al_2018_density.png")
 
 df_te$depth
