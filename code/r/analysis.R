@@ -145,3 +145,26 @@ ggsave("figs/tomasovych_et_al_2018_density.png")
 
 df_te$depth
 IQR(df_te$age[df_te$depth == 100])
+
+##
+# read data from matlab
+da = R.matlab::readMat("code/matlab/Po4_res.mat")
+
+ages = da$ages[1,]
+depths = da$depths[1,]
+u = da$u
+
+dimnames(u) <- list( "depths" = depths, "ages" = ages)
+
+require(reshape2)
+#install.packages("reshape2")
+mydf = melt(u)
+
+
+ p = ggplot(mydf, aes(Var2, Var1, z = value)) + geom_contour(binwidth = 0.001, show.legend = FALSE) + xlim(range(mydf$Var2)) + 
+   ylim(range(mydf$Var1)) +
+   scale_y_reverse() +
+   xlab("Age [years]") +
+   ylab("Depth [cm]")
+p 
+ggsave("figs/Po4_modeled.png")
