@@ -11,7 +11,7 @@ ode_solver_options = matlab_outputs$odeoptions
 tavg_list = vector(mode = "list", length = length(peclet_numbers))
 for (i in seq_along(peclet_numbers)){
   tavg_list[[i]] = list(
-    den = matlab_outputs$tavg.below.sml[, i],
+    den = pmax(0,matlab_outputs$tavg.below.sml[, i]),
     peclet_number = matlab_outputs$peclet.numbers[1,i]
   )
 }
