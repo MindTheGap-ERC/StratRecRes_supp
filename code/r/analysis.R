@@ -82,15 +82,19 @@ l1 = log10(df$L)
 ta = log10(df$tavg)
 di = log10(df$disorder)
 
-g = glm(ta ~ m1 + s1 + l1)
+tavg_glm = glm(ta ~ m1 + s1 + l1)
+disorder_glm = stats::glm(di ~ m1 + s1 + l1)
 
-g
-summary(g)
-step(g)
-stats::visreg::visreg(g,ylim=c(0,4.4))
+tavg_glm
+summary(tavg_glm)
+step(tavg_glm)
+step(disorder_glm)
+#fl = visreg::visreg(tavg_glm,ylim=c(0,4.4))
 
 
-visred::visreg(g,"s1")
+
+
+tavg_glm_plot_s
 
 rsq::rsq.partial(g,adj=TRUE)
 
@@ -200,3 +204,81 @@ mydf = reshape2::melt(u)
    ylab("Depth [cm]")
 p 
 ggsave("figs/Po4_modeled.png")
+
+
+#### GLM plot ####
+sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
+mix_label =  expression( log[10]* group("(", Mixing~int*".",")")  ~  group("[",cm/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
+mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
+tavg_label =  expression( log[10]* group("(", Time ~averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
+disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
+
+tavg_y_axis_lims = range(log10(c(df$tavg* 1.1, df$tavg * 0.9)))
+disorder_y_axis_lims = range(log10(c(1.1 * df$disorder, 0.9 * df$disorder)))
+
+two_col_width_cm = 12.28
+x_axis_text_size_pts = 7
+y_axis_text_size_pts = 7
+glm_plot_height_cm = 14
+
+make_glm_plot = function(fig_name){
+  tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
+                                   gg = TRUE) +
+    xlab(sedr_label) +
+    ylab(tavg_label) +
+    ylim(tavg_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
+                                   gg = TRUE) +
+    xlab(mix_label) +
+    ylab(tavg_label)  + 
+    ylim(tavg_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
+                                  gg = TRUE) +
+    xlab(mix_depth_label) +
+    ylab(tavg_label)  + 
+    ylim(tavg_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  
+  disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
+                                       gg = TRUE) +
+    xlab(sedr_label) +
+    ylab(disorder_label)  +
+    ylim(disorder_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
+                                       gg = TRUE) +
+    xlab(mix_label) +
+    ylab(disorder_label)  +
+    ylim(disorder_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
+                                      gg = TRUE) +
+    xlab(mix_depth_label) +
+    ylab(disorder_label)  +
+    ylim(disorder_y_axis_lims) +
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts))
+  
+  figure = egg::ggarrange(tavg_glm_plot_s, tavg_glm_plot_l, tavg_glm_plot_m,
+                          disorder_glm_plot_s, disorder_glm_plot_l, disorder_glm_plot_m,
+                          nrow = 2, ncol = 3,
+                          labels = LETTERS[1:6])
+  
+  ggsave(paste0("figs/", fig_name, ".png"), figure,
+         width = two_col_width_cm, units = c("cm"),
+         height = glm_plot_height_cm)
+}
+
+make_glm_plot("glm_res")
