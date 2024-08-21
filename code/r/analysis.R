@@ -94,9 +94,7 @@ step(disorder_glm)
 
 
 
-tavg_glm_plot_s
-
-rsq::rsq.partial(g,adj=TRUE)
+rsq::rsq.partial(tavg_glm,adj=TRUE)
 
 g = stats::glm(di ~ m1 + s1 + l1)
 
@@ -109,56 +107,9 @@ visreg::visreg(g,"s1")
 
 rsq::rsq.partial(g,adj=TRUE)
 
-#### Figure 2 ####
-# plots histogram of Peclet numbers and F_mix
-plot_hist_and_fmix = function(){
-  pe_min_log = min(log10(peclet_numbers))
-  pe_max_log = max(log10(peclet_numbers))
-  pe_step = 1/3
-  tavg_lwd = 3
-  tavg_col = "black"
-  a = hist(log10(df$Pe), plot = FALSE, freq = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
-  png("figs/fig2.png")
-  plot(log10(peclet_numbers), tavg_dimless, type = "l",
-       xlab = "log10(Peclet number)",
-       ylab = "Dimensionless time-averaging",
-       lwd = tavg_lwd,
-       col = tavg_col)
-  par(new = TRUE)
-  
-  plot(a, freq = FALSE, axes = FALSE,
-       xlab = "",
-       ylab = "",
-       main = "")
-  axis(4)
-  mtext("Frequency", side = 4)
-  
-  par(new = FALSE)
-  dev.off()
-}
 
 
-#### Supplementary Figure 1 ####
-plot_fmix_dist = function(){
-  ggplot(df, aes(x = F_mix)) + geom_histogram()
-  ggsave("figs/supp_fig_1.png")
 
-}
-
-plot_fmix_dist()
-
-#### Supplementary figure 2 ####
-
-plot_sml_histograms = function(fig_name){
-  p_m = ggplot(df, aes(x = M)) + geom_histogram() + scale_x_log10()
-  p_l = ggplot(df, aes(x = L)) + geom_histogram()
-  p_s =ggplot(df, aes(x = S)) + geom_histogram() + scale_x_log10()
-  
-  figure = egg::ggarrange(p_m, p_l, p_s, labels = c("A", "B", "C"), ncol = 2, nrow = 2)
-  ggsave(paste0("figs/", fig_name, ".png"), figure)
-}
-
-plot_sml_histograms("suppl_fig_2")
 
 
 #### Figure 1 ####
@@ -171,15 +122,8 @@ df_te = data.frame("age" = to2$Age[!is.na(to2$Age)], "depth" = as.numeric(to2$ma
 age_lim = 150
 depth_lim = 120
 
-ggplot(df_te, aes(x = age, y = depth)) + 
-  geom_point() +
-  xlim(0, age_lim) +
-  scale_y_reverse(lim = c(depth_lim, 0)) +
-  geom_density2d_filled(alpha = 0.5) +
-  ggtitle("Core Po4 Particle distribution") +
-  xlab("Age [years]") +
-  ylab("Depth [cm]")
-ggsave("figs/tomasovych_et_al_2018_density.png")
+
+ggsave("figs/tomasovych_et_al_2018_density.png", p1)
 
 #df_te$depth
 #IQR(df_te$age[df_te$depth == 95])
@@ -195,81 +139,124 @@ u = da$u
 #dimnames(u) <- list( "depths" = depths, "ages" = ages)
 mydf = reshape2::melt(u)
 
-
- p = ggplot(mydf, aes(Var2, Var1, z = value)) + geom_contour(binwidth = 0.001, show.legend = FALSE) + xlim(range(mydf$Var2)) + 
+p1 = ggplot(df_te, aes(x = age, y = depth)) + 
+  geom_point() +
+  xlim(0, age_lim) +
+  scale_y_reverse(lim = c(depth_lim, 0)) +
+  geom_density2d_filled(alpha = 0.5, show.legend = FALSE) +
+  ggtitle("Core Po4 Particle distribution") +
+  xlab("Age [years]") +
+  ylab("Depth [cm]") + 
+  ggtitle("Empirical") +
+  scale_color_viridis_c()
+p1
+br = c(seq(0, 0.01, by = 0.001), seq(0.01, 0.1, by = 0.02))
+ p2 = ggplot(mydf, aes(Var2, Var1, z = value)) + 
+   geom_contour_filled(breaks = br, show.legend = FALSE) + 
+   geom_contour(breaks = br)+
+   xlim(range(mydf$Var2)) + 
    ylim(range(mydf$Var1)) +
    xlim(0, age_lim) +
    scale_y_reverse(lim = c(depth_lim, 0)) +
    xlab("Age [years]") +
-   ylab("Depth [cm]")
-p 
-ggsave("figs/Po4_modeled.png")
+   ylab("Depth [cm]") +
+   ggtitle("Model") +
+   scale_color_viridis_c()
+p2 
+ggsave("figs/Po4_modeled.png", p2)
+
+jo = egg::ggarrange(p1, p2, ncol = 2, nrow = 1)
+
+ggsave("figs/joint_Po4.png", jo)
 
 
 #### GLM plot ####
 sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
-mix_label =  expression( log[10]* group("(", Mixing~int*".",")")  ~  group("[",cm/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
+mix_label =  expression( log[10]* group("(", Mixing~int*".",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
 mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
 tavg_label =  expression( log[10]* group("(", Time ~averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
 disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
 
-tavg_y_axis_lims = range(log10(c(df$tavg* 1.1, df$tavg * 0.9)))
+tavg_y_axis_lims = range(log10(c(df$tavg* 1.3, df$tavg * 0.8)))
 disorder_y_axis_lims = range(log10(c(1.1 * df$disorder, 0.9 * df$disorder)))
 
 two_col_width_cm = 12.28
 x_axis_text_size_pts = 7
 y_axis_text_size_pts = 7
 glm_plot_height_cm = 14
+annot_size_pts = 7
 
 make_glm_plot = function(fig_name){
+  rsq = rsq::rsq.partial(tavg_glm)
+  
+  vv = paste(": ", signif(rsq$partial.rsq[2], 3))
+  annot = bquote(partial ~ R^2* .(vv))
   tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
                                    gg = TRUE) +
     xlab(sedr_label) +
     ylab(tavg_label) +
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
+  tavg_glm_plot_s
   
+  vv = paste(": ", signif(rsq$partial.rsq[1], 3))
+  annot = bquote(partial ~ R^2*  .(vv))
   tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
                                    gg = TRUE) +
     xlab(mix_label) +
     ylab(tavg_label)  + 
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
   
+  vv = paste(": ", signif(rsq$partial.rsq[3], 3))
+  annot = bquote(partial ~ R^2*  .(vv))
   tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
                                   gg = TRUE) +
     xlab(mix_depth_label) +
     ylab(tavg_label)  + 
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
   
+  rsq = rsq::rsq.partial(disorder_glm)
   
+  vv = paste(": ", signif(rsq$partial.rsq[2], 3))
+  annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
                                        gg = TRUE) +
     xlab(sedr_label) +
     ylab(disorder_label)  +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) 
   
+  vv = paste(": ", signif(rsq$partial.rsq[1], 3))
+  annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
                                        gg = TRUE) +
     xlab(mix_label) +
     ylab(disorder_label)  +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) 
   
+  vv = paste(": ", signif(rsq$partial.rsq[3], 3))
+  annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
                                       gg = TRUE) +
     xlab(mix_depth_label) +
     ylab(disorder_label)  +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts))
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) 
   
   figure = egg::ggarrange(tavg_glm_plot_s, tavg_glm_plot_l, tavg_glm_plot_m,
                           disorder_glm_plot_s, disorder_glm_plot_l, disorder_glm_plot_m,
@@ -282,3 +269,70 @@ make_glm_plot = function(fig_name){
 }
 
 make_glm_plot("glm_res")
+
+
+#### Figure 2 ####
+# plots histogram of Peclet numbers and F_mix
+plot_hist_and_fmix = function(file_name){
+  aa = par(no.readonly = TRUE)
+  
+  pe_min_log = min(log10(peclet_numbers))
+  pe_max_log = max(log10(peclet_numbers))
+  pe_step = 1/3
+  tavg_lwd = 3
+  tavg_col = "black"
+  a = hist(log10(df$Pe), plot = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
+  png(file_name,
+      width = )
+  par(mar = c(5.1, 4.1, 4.1, 4.1))
+  plot(log10(peclet_numbers), tavg_dimless, type = "l",
+       xlab = "log10(Peclet number)",
+       ylab = "Dimensionless time-averaging",
+       lwd = tavg_lwd,
+       col = tavg_col,
+       mar = c(5.1, 4.1, 4.1, 4.1))
+  par(new = TRUE)
+  
+  plot(a, freq = FALSE, axes = FALSE,
+       xlab = "",
+       ylab = "",
+       main = "")
+  axis(4)
+  mtext("Frequency", side = 4, line = 2.8)
+  
+  par(new = FALSE)
+  dev.off()
+}
+plot_hist_and_fmix("figs/fig_2.png")
+
+
+#### Supplementary Figure 1 ####
+plot_fmix_dist = function(fig_name){
+  ggplot(df, aes(x = F_mix)) + 
+    geom_histogram() +
+    xlab(expression(Distribution ~ of ~ F[mix]))
+  ggsave(fig_name)
+}
+plot_fmix_dist("figs/supp_distribution_Fmix.png")
+
+#### Supplementary figure 2 ####
+plot_sml_histograms = function(fig_name){
+  mix_label =  expression(  Mixing~int*"."  ~  group("[",cm^2/a,"]") )
+  p_m = ggplot(df, aes(x = M)) + 
+    geom_histogram() + 
+    scale_x_log10() +
+    xlab(mix_label)
+  p_l = ggplot(df, aes(x = L)) + 
+    geom_histogram() +
+    xlab("Mixing depth [cm]")
+  p_s =ggplot(df, aes(x = S)) +
+    geom_histogram() +
+    scale_x_log10() +
+    xlab("log10(Sedimentation rate) [cm/a]")
+  
+  figure = egg::ggarrange(p_m, p_l, p_s, labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+  ggsave(fig_name, figure)
+}
+
+plot_sml_histograms("figs/suppl_summary_SML.png")
+
