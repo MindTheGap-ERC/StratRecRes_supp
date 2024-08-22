@@ -15,7 +15,11 @@ df$L_max = pmax(smlbase$L1, smlbase$L1Max, smlbase$L1Min, smlbase$L2, na.rm = TR
 df$M_min = pmin(smlbase$M1, smlbase$M1Max, smlbase$M1Min, smlbase$M2, na.rm = TRUE)
 df$M_max = pmax(smlbase$M1, smlbase$M1Max, smlbase$M1Min, smlbase$M2, na.rm = TRUE)
 
-df = dplyr::filter(df, !(df$S_min <= 0 | df$S_max <= 0 | df$M_min <= 0 | df$M_max <= 0))
+df$wd_min = pmin(smlbase$WDMin, smlbase$WDMax, smlbase$WD, na.rm = TRUE)
+df$wd_max = pmax(smlbase$WDMin, smlbase$WDMax, smlbase$WD, na.rm = TRUE)
+df$wd = 0.5 * (df$wd_max + df$wd_min)
+
+df = dplyr::filter(df, !(df$S_min <= 0 | df$S_max <= 0 | df$M_min <= 0 | df$M_max <= 0| df$wd_max <= 0| df$wd_min <= 0))
 df$S = 0.5 * (df$S_max + df$S_min)
 df$M = 0.5 * (df$M_max + df$M_min)
 df$L = 0.5 * (df$L_max + df$L_min)
@@ -91,9 +95,21 @@ step(tavg_glm)
 step(disorder_glm)
 #fl = visreg::visreg(tavg_glm,ylim=c(0,4.4))
 
+tt = log10(df$tavg)
+wd_l = log10(df$wd)
+lm_tavg_wd = lm( tt ~ wd_l)
+lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
+  xlab("log10(water depth) [m]") +
+  ylab("log10(time averaging) [a]")
 
+di = df$disorder
+lm_disorder_wd = lm(di ~ wd_l)
+lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
+  xlab("log10(water depth) [m]") +
+  ylab("Stratigraphic disorder [cm]")
 
-
+fig = egg::ggarrange(lm1, lm2, ncol = 2)
+ggsave("figs/wd_plot.png", fig)
 rsq::rsq.partial(tavg_glm,adj=TRUE)
 
 g = stats::glm(di ~ m1 + s1 + l1)
@@ -335,4 +351,6 @@ plot_sml_histograms = function(fig_name){
 }
 
 plot_sml_histograms("figs/suppl_summary_SML.png")
+
+
 
