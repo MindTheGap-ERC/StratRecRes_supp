@@ -123,7 +123,7 @@ age_lim = 150
 depth_lim = 120
 
 
-ggsave("figs/tomasovych_et_al_2018_density.png", p1)
+#ggsave("figs/tomasovych_et_al_2018_density.png", p1)
 
 #df_te$depth
 #IQR(df_te$age[df_te$depth == 95])
