@@ -51,8 +51,8 @@ tavg_fun = function(Pe, S, L){
   return(tavg)
 }
 disorder_fun = function(Pe, L){
-  tavg = approx(x = peclet_numbers, y = tavg_dimless, xout = Pe, rule = 2)$y * L
-  return(tavg)
+  disorder = approx(x = peclet_numbers, y = tavg_dimless, xout = Pe, rule = 2)$y * L
+  return(disorder)
 }
 
 #### Determine tavg and disorder for SMLBase ####
@@ -96,39 +96,21 @@ summary(tavg_glm)
 step(tavg_glm)
 step(disorder_glm)
 #fl = visreg::visreg(tavg_glm,ylim=c(0,4.4))
+rsq::rsq.partial(disorder_glm,adj=TRUE)
 
-tt = log10(df$tavg)
+
+#### tavg and disorder vs. water depth ####
+logtavg = log10(df$tavg)
 wd_l = log10(df$wd)
-lm_tavg_wd = lm( tt ~ wd_l)
-lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
-  xlab("log10(water depth) [m]") +
-  ylab("log10(time averaging) [a]")
+lm_tavg_wd = lm( logtavg ~ wd_l)
 
-di = df$disorder
+di = log10(df$disorder)
 lm_disorder_wd = lm(di ~ wd_l)
-lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
-  xlab("log10(water depth) [m]") +
-  ylab("Stratigraphic disorder [cm]")
 
-fig = egg::ggarrange(lm1, lm2, ncol = 2)
-ggsave("figs/wd_plot.png", fig)
-rsq::rsq.partial(tavg_glm,adj=TRUE)
-
-g = stats::glm(di ~ m1 + s1 + l1)
-
-g
-summary(g)
-stats::step(g)
-visreg::visreg(g)
-
-visreg::visreg(g,"s1")
-
-rsq::rsq.partial(g,adj=TRUE)
-
-
-
-
-
+summary(lm_tavg_wd)
+step(lm_tavg_wd)
+step(lm_disorder_wd)
+summary(lm_disorder_wd)
 
 #### Figure 1 ####
 # Data from Tomasovych et al 2018
@@ -206,9 +188,10 @@ annot_size_pts = 7
 
 make_glm_plot = function(fig_name){
   rsq = rsq::rsq.partial(tavg_glm)
-  
+  # sed rate
   vv = paste(": ", signif(rsq$partial.rsq[2], 3))
   annot = bquote(partial ~ R^2* .(vv))
+  slope_annot = paste("Slope: ", signif(coefficients(tavg_glm)["s1"], 3))
   tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
                                    gg = TRUE) +
     xlab(sedr_label) +
@@ -216,9 +199,11 @@ make_glm_plot = function(fig_name){
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
   tavg_glm_plot_s
   
+  # biodiffusion
   vv = paste(": ", signif(rsq$partial.rsq[1], 3))
   annot = bquote(partial ~ R^2*  .(vv))
   tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
@@ -230,6 +215,7 @@ make_glm_plot = function(fig_name){
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
   
+  # mixing depth
   vv = paste(": ", signif(rsq$partial.rsq[3], 3))
   annot = bquote(partial ~ R^2*  .(vv))
   tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
@@ -242,7 +228,7 @@ make_glm_plot = function(fig_name){
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) 
   
   rsq = rsq::rsq.partial(disorder_glm)
-  
+  # sedimentation rate
   vv = paste(": ", signif(rsq$partial.rsq[2], 3))
   annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
@@ -254,6 +240,7 @@ make_glm_plot = function(fig_name){
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) 
   
+  # biodiffusion
   vv = paste(": ", signif(rsq$partial.rsq[1], 3))
   annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
@@ -265,6 +252,7 @@ make_glm_plot = function(fig_name){
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) 
   
+  # mixing depth
   vv = paste(": ", signif(rsq$partial.rsq[3], 3))
   annot = bquote(partial ~ R^2*  .(vv))
   disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
@@ -335,7 +323,7 @@ plot_fmix_dist("figs/supp_distribution_Fmix.png")
 
 #### Supplementary figure 2 ####
 plot_sml_histograms = function(fig_name){
-  mix_label =  expression(  Mixing~int*"."  ~  group("[",cm^2/a,"]") )
+  mix_label =  expression(  Biodiffusion*""  ~  group("[",cm^2/a,"]") )
   p_m = ggplot(df, aes(x = M)) + 
     geom_histogram() + 
     scale_x_log10() +
@@ -354,5 +342,17 @@ plot_sml_histograms = function(fig_name){
 
 plot_sml_histograms("figs/suppl_summary_SML.png")
 
+#### tavg and disorder vs. water depth plot ####
 
+wd_plot = function(filepath){
+  lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
+    xlab("log10(water depth) [m]") +
+    ylab("log10(time averaging) [a]")
+  lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
+    xlab("log10(water depth) [m]") +
+    ylab("Stratigraphic disorder [cm]")
+  fig = egg::ggarrange(lm1, lm2, ncol = 2)
+  ggsave(filepath, fig)
+}
 
+wd_plot("figs/Fig_4.png")
