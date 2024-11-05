@@ -70,13 +70,15 @@ hist(log10(df$tavg))
 hist(df$disorder)
 
 #### Empirical results from SMLBase ####
+# negative sign to convert to mixing intensity instead of peclet number
 
-signif(quantile(log10(df$Pe), c(0.025, 0.975)), 3)
-signif(median(log10(df$Pe)), 3)
-signif(quantile(log10(df$Pe), c(0.25, 0.75)), 3)
+signif(quantile(-log10(df$Pe), c(0.025, 0.975)), 3)
+signif(median(-log10(df$Pe)), 3)
+signif(quantile(-log10(df$Pe), c(0.25, 0.75)), 3)
 
 signif(quantile(df$F_mix, c(0.25, 0.75), 3))
 df$F_mix |> median() |> signif(3)
+df$F_mix |> quantile() |> signif(3)
 
 #### GLM ####
 
@@ -188,7 +190,7 @@ ggsave("figs/joint_Po4.png", jo)
 
 #### GLM plot ####
 sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
-mix_label =  expression( log[10]* group("(", Mixing~int*".",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
+mix_label =  expression( log[10]* group("(", Biodiffusion*".",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
 mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
 tavg_label =  expression( log[10]* group("(", Time ~averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
 disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
@@ -292,17 +294,17 @@ make_glm_plot("glm_res")
 plot_hist_and_fmix = function(file_name){
   aa = par(no.readonly = TRUE)
   
-  pe_min_log = min(log10(peclet_numbers))
-  pe_max_log = max(log10(peclet_numbers))
+  pe_min_log = min(-log10(peclet_numbers))
+  pe_max_log = max(-log10(peclet_numbers))
   pe_step = 1/3
   tavg_lwd = 3
   tavg_col = "black"
-  a = hist(log10(df$Pe), plot = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
+  a = hist(-log10(df$Pe), plot = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
   png(file_name,
       width = )
   par(mar = c(5.1, 4.1, 4.1, 4.1))
-  plot(log10(peclet_numbers), tavg_dimless, type = "l",
-       xlab = "log10(Peclet number)",
+  plot(-log10(peclet_numbers), tavg_dimless, type = "l",
+       xlab = "log10(Mixing Intensity)",
        ylab = "Dimensionless time-averaging",
        lwd = tavg_lwd,
        col = tavg_col,
