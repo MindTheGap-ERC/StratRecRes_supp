@@ -27,6 +27,9 @@ df$Pe_min = df$L_min * df$S_min / df$M_max
 df$Pe_max = df$L_max * df$S_max / df$M_min
 df$Pe = df$L * df$S / df$M
 
+dd = data.frame(df$S, df$L, df$M)
+cor(dd)
+
 #### Import data from matlab and determine dimless tavg ####
 ## load helper functions
 source(file = "code/R/utils.R")
@@ -89,7 +92,9 @@ ta = log10(df$tavg)
 di = log10(df$disorder)
 
 tavg_glm = glm(ta ~ m1 + s1 + l1)
+car::vif(tavg_glm)
 disorder_glm = stats::glm(di ~ m1 + s1 + l1)
+car::vif(disorder_glm)
 
 tavg_glm
 summary(tavg_glm)
