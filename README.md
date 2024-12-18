@@ -12,7 +12,7 @@ ORCID: [0000-0003-1559-1838](https://orcid.org/0000-0003-1559-1838)
 
 ## Requirements
 
-R version >= 4.2 and Matlab 2006a or more recent.
+R version >= 4.2, optionally Matlab 2006a or more recent.
 
 ## Reproduction
 
@@ -22,6 +22,14 @@ For details on reproduction of the study see REPRODUCEME.md.
 
 * code : directory with matlab and r code
 * data : directory with data
+  * matlab_outputs
+    * ADDs_from_matlab.mat : Matlab simulation results
+    * codebook.md : description of contents of ADDs_from_matlab.mat
+  * r_outputs : initially empty, filled with intermediate data after running of `analysis.R`
+  * res : initially empty, filled with results after running `analysis.R`
+  * smlbase : SMLBase v1.04, Hohmann (2022)
+  * tomasovych_et_al_2018: Raw data from Tomasovych et al. (2018)
+* figs : initially empty, filled with figures after running `analysis.R`
 * renv : directory for the `renv` package
 * .gitignore : untracked files
 * .Rprofile : R session setup
@@ -30,6 +38,13 @@ For details on reproduction of the study see REPRODUCEME.md.
 * renv.lock : lock file for `renv` package
 * REPRODUCEME.md : Instructions for reproduction of the results
 * StratRecRes_supp.Rproj : Rproject file
+
+## References
+
+This repository contains data from
+
+* Hohmann, Niklas. 2022. “Global Compilation of Surface Mixed Layer Parameters (Sedimentation Rate, Bioturbation Depth, Mixing Intensity) from Marine Environments: The SMLBase v1.0.” Frontiers in Earth Science 10 (December):1013174. https://doi.org/10.3389/feart.2022.1013174.
+* Tomašových, Adam, Ivo Gallmetzer, Alexandra Haselmair, Darrell S. Kaufman, Martina Kralj, Daniele Cassin, Roberto Zonta, and Martin Zuschin. 2018. “Tracing the Effects of Eutrophication on Molluscan Communities in Sediment Cores: Outbreaks of an Opportunistic Species Coincide with Reduced Bioturbation and High Frequency of Hypoxia in the Adriatic Sea.” Paleobiology 44 (4): 575–602. https://doi.org/10.1017/pab.2018.22.
 
 ## Copyright
 

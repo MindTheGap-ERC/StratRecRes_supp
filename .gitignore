@@ -3,9 +3,6 @@
 .RData
 .Ruserdata
 
-*.pdf
-*.csv
-
 *.Rdata
 
 *.asv
