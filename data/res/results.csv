@@ -1,0 +1,21 @@
+"","description","values"
+"1","median log10 G",0.926
+"2","1st quartile log10 G",0.341
+"3","3rd quartile log10 G",1.325
+"4","lower bound HDR log10 G",-0.591
+"5","upper bound HDR log10 G",2.165
+"6","median F_mix",0.898
+"7","partial R2 disorder D_b",0.569
+"8","partial R2 disorder S",0.386
+"9","partial R2 disorder L",0.981
+"10","coeff disorder D_b",0.063
+"11","coeff disorder S",-0.057
+"12","coeff disorder L",0.931
+"13","partial R2 tavg D_b",0.569
+"14","partial R2 tavg S",0.995
+"15","partial R2 tavg L",0.981
+"16","coeff tavg D_b",0.063
+"17","coeff tavg S",-1.057
+"18","coeff tavg L",0.931
+"19","IQR 110 cm depth Po4",49
+"20","deepest C. gibba shell younger than 25 years in Po4",155
