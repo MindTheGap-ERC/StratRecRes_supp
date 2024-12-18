@@ -1,6 +1,6 @@
 # StratRecRes_supp
 
-Code and supplementary data for "Estimating temporal resolution and disorder of the stratigraphic record".
+Code and supplementary data for "Sedimentation rates determine temporal resolution and disorder of the stratigraphic record".
 
 ## Authors
 
@@ -43,8 +43,8 @@ For details on reproduction of the study see REPRODUCEME.md.
 
 This repository contains data from
 
-* Hohmann, Niklas. 2022. “Global Compilation of Surface Mixed Layer Parameters (Sedimentation Rate, Bioturbation Depth, Mixing Intensity) from Marine Environments: The SMLBase v1.0.” Frontiers in Earth Science 10 (December):1013174. https://doi.org/10.3389/feart.2022.1013174.
-* Tomašových, Adam, Ivo Gallmetzer, Alexandra Haselmair, Darrell S. Kaufman, Martina Kralj, Daniele Cassin, Roberto Zonta, and Martin Zuschin. 2018. “Tracing the Effects of Eutrophication on Molluscan Communities in Sediment Cores: Outbreaks of an Opportunistic Species Coincide with Reduced Bioturbation and High Frequency of Hypoxia in the Adriatic Sea.” Paleobiology 44 (4): 575–602. https://doi.org/10.1017/pab.2018.22.
+* Hohmann, Niklas. 2022. “Global Compilation of Surface Mixed Layer Parameters (Sedimentation Rate, Bioturbation Depth, Mixing Intensity) from Marine Environments: The SMLBase v1.0.” Frontiers in Earth Science 10 (December):1013174. [DOI: 10.3389/feart.2022.1013174](https://doi.org/10.3389/feart.2022.1013174).
+* Tomašových, Adam, Ivo Gallmetzer, Alexandra Haselmair, Darrell S. Kaufman, Martina Kralj, Daniele Cassin, Roberto Zonta, and Martin Zuschin. 2018. “Tracing the Effects of Eutrophication on Molluscan Communities in Sediment Cores: Outbreaks of an Opportunistic Species Coincide with Reduced Bioturbation and High Frequency of Hypoxia in the Adriatic Sea.” Paleobiology 44 (4): 575–602. [DOI: 10.1017/pab.2018.22](https://doi.org/10.1017/pab.2018.22).
 
 ## Copyright
 
