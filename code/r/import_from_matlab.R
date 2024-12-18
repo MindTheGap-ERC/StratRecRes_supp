@@ -7,6 +7,9 @@ peclet_numbers = matlab_outputs$peclet.numbers[1,]
 t_dimless = matlab_outputs$t.dimless[1,]
 epsilon = matlab_outputs$epsilon[1,1]
 ode_solver_options = matlab_outputs$odeoptions
+ages = matlab_outputs$ages[1,]
+depths = matlab_outputs$depths[1,]
+u = matlab_outputs$u
 
 tavg_list = vector(mode = "list", length = length(peclet_numbers))
 for (i in seq_along(peclet_numbers)){
@@ -21,12 +24,15 @@ var_names = c("peclet_numbers",
               "t_dimless",
               "epsilon",
               "ode_solver_options",
-              "tavg_list")
+              "tavg_list",
+              "ages",
+              "depths",
+              "u")
 save(
   list = var_names,
-  file = "data/r_outputs/tavg_below_sml.Rdata"
+  file = "data/r_outputs/matlab_res.Rdata"
 )
 
 remove(list = c(var_names,"var_names"))
 
-cat("Done. Data is saved in /data/r_outputs/tavg_below_sml.Rdata\n")
+cat("Done. Data is saved in data/r_outputs/matlab_res.Rdata\n")

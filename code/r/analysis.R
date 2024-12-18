@@ -27,6 +27,7 @@ df$Pe_min = df$L_min * df$S_min / df$M_max
 df$Pe_max = df$L_max * df$S_max / df$M_min
 df$Pe = df$L * df$S / df$M
 
+
 dd = data.frame(df$S, df$L, df$M)
 cor(dd)
 
@@ -131,7 +132,7 @@ depth_lim = 120
 #ggsave("figs/tomasovych_et_al_2018_density.png", p1)
 
 #df_te$depth
-#IQR(df_te$age[df_te$depth == 95])
+IQR(df_te$age[df_te$depth == 95])
 
 ##
 # read data from matlab
