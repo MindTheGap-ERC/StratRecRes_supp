@@ -1,6 +1,6 @@
 # read data from matlab outputs.
 cat("Importing matlab data into R, please wait.\n")
-matlab_outputs = R.matlab::readMat("data/matlab_outputs/tavg_from_matlab.mat")
+matlab_outputs = R.matlab::readMat("data/matlab_outputs/ADDs_from_matlab.mat")
 
 ## remove additional dimensions
 peclet_numbers = matlab_outputs$peclet.numbers[1,]

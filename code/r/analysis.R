@@ -37,7 +37,7 @@ source(file = "code/R/utils.R")
 ## import data from matlab
 source(file = "code/R/import_from_matlab.R")
 ## load matlab data
-load(file = "data/r_outputs/tavg_below_sml.Rdata")
+load(file = "data/r_outputs/matlab_res.Rdata")
 
 ## determine dimensionless time averaging below SML
 tavg_dimless = rep(NA, length(peclet_numbers))
@@ -135,12 +135,12 @@ depth_lim = 120
 IQR(df_te$age[df_te$depth == 95])
 
 ##
-# read data from matlab
-da = R.matlab::readMat("code/matlab/Po4_res.mat")
-
-ages = da$ages[1,]
-depths = da$depths[1,]
-u = da$u
+# # read data from matlab
+# da = R.matlab::readMat("code/matlab/Po4_res.mat")
+# 
+# ages = da$ages[1,]
+# depths = da$depths[1,]
+# u = da$u
 
 #dimnames(u) <- list( "depths" = depths, "ages" = ages)
 mydf = reshape2::melt(u)
@@ -362,3 +362,5 @@ wd_plot = function(filepath){
 }
 
 wd_plot("figs/Fig_4.png")
+
+cat("done. Results are under \"figs/\"and \"data/res\"\n")
