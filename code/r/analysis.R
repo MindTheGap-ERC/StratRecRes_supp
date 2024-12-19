@@ -155,7 +155,7 @@ make_fig_1 = function(){
     scale_color_viridis_c()
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
-  jo = egg::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"))
+  jo = egg::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"), draw = FALSE)
   ggsave("figs/Figure1.png", jo)
 }
 make_fig_1()
