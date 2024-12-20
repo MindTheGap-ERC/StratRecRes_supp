@@ -137,7 +137,7 @@ make_fig_1 = function(){
     scale_y_reverse(lim = c(depth_lim, 0)) +
     geom_density2d_filled(alpha = 0.5, show.legend = FALSE) +
     ggtitle("Particle Distribution Core Po4") +
-    xlab("Age [years]") +
+    xlab("Age [a]") +
     ylab("Depth [cm]") +
     scale_color_viridis_c()
   #p1
@@ -149,9 +149,9 @@ make_fig_1 = function(){
     geom_contour(breaks = br)+
     xlim(0, age_lim) +
     scale_y_reverse(lim = c(depth_lim, 0)) +
-    xlab("Age [years]") +
+    xlab("Age [a]") +
     ylab("Depth [cm]") +
-    ggtitle("Modeled Age-Depth Distribution") +
+    ggtitle("Modelled Age-Depth Distribution") +
     scale_color_viridis_c()
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
@@ -161,6 +161,10 @@ make_fig_1 = function(){
 make_fig_1()
 
 #### Figure 2: histogram of mixing intensity and F_mix ####
+fmix_label =  expression( F[mix] )  #"log10(Mixing depth) [cm]"
+g_label =  expression( log[10]* group("(", G,")")  ~  group("[","-","]") )  #"log10(Mixing depth) [cm]"
+
+
 make_fig_2 = function(){
   aa = par(no.readonly = TRUE)
   pe_min_log = min(-log10(peclet_numbers))
@@ -173,8 +177,8 @@ make_fig_2 = function(){
       width = )
   par(mar = c(5.1, 4.1, 4.1, 4.1))
   plot(-log10(peclet_numbers), tavg_dimless, type = "l",
-       xlab = "log10(Mixing Intensity G)",
-       ylab = "Dimensionless time-averaging F_mix",
+       xlab = g_label,
+       ylab = fmix_label,
        lwd = tavg_lwd,
        col = tavg_col,
        ylim = c(0, 1.1 * max(tavg_dimless)),
@@ -194,10 +198,11 @@ make_fig_2()
 
 #### Figure 3: GLM plot ####
 sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
-mix_label =  expression( log[10]* group("(", Biodiffusion*".",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
-mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
-tavg_label =  expression( log[10]* group("(", Time ~averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
-disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
+mix_label =  expression( log[10]* group("(", Biodiffusion*"",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
+mix_depth_label =  expression( log[10]* group("(", Mixing~Depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
+tavg_label =  expression( log[10]* group("(", Time-averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
+disorder_label = expression( log[10]* group("(", Stratigraphic~Disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
+wd_label =  expression( log[10]* group("(", Water~Depth,")")  ~  group("[",m,"]") )  #"log10(Mixing depth) [cm]"
 
 tavg_y_axis_lims = range(log10(c(df$tavg* 1.3, df$tavg * 0.8)))
 disorder_y_axis_lims = range(log10(c(1.1 * df$disorder, 0.9 * df$disorder)))
@@ -313,11 +318,11 @@ make_fig_3()
 #### Figure 4: water depth vs tavg and disorder ####
 make_fig_4 = function(){
   lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
-    xlab("log10(Water Depth) [m]") +
-    ylab("log10(Time-averaging) [a]")
+    xlab(wd_label) +
+    ylab(tavg_label)
   lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
-    xlab("log10(Water Depth) [m]") +
-    ylab("log10(Stratigraphic Disorder) [cm]")
+    xlab(wd_label) +
+    ylab(disorder_label)
   fig = egg::ggarrange(lm1, lm2, ncol = 2, draw = FALSE, labels = c("A", "B"))
   ggsave("figs/Figure4.png", fig)
 }
