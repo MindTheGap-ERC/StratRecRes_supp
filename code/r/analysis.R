@@ -89,6 +89,12 @@ di = log10(df$disorder)
 tavg_glm = glm(ta ~ m1 + s1 + l1)
 disorder_glm = stats::glm(di ~ m1 + s1 + l1)
 
+x = summary(tavg_glm)
+write.csv(as.data.frame(x$coefficients), file = "data/res/tavg_glm_res.csv")
+
+x = summary(disorder_glm)
+write.csv(as.data.frame(x$coefficients), file = "data/res/disorder_glm_res.csv")
+
 ## Check for multicolinearity
 dd = data.frame(m1, s1, l1)
 cor_mat = cor(dd)
