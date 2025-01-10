@@ -115,6 +115,48 @@ results[c("coeff disorder D_b", "coeff disorder S", "coeff disorder L")] = round
 results[c("partial R2 tavg D_b", "partial R2 tavg S", "partial R2 tavg L")] = round(rsq_part_tavg$partial.rsq, round_res)
 results[c("coeff tavg D_b", "coeff tavg S", "coeff tavg L")] = round(tavg_glm$coefficients[-1], round_res)
 
+#### Coefficient plot ####
+
+# install.packages("dotwhisker")
+# install.packages("gapminder")
+
+library(dotwhisker)
+library(gapminder)
+
+a1 = dwplot(tavg_glm) +
+  ggtitle("Time-averaging") + 
+  labs(x = "Regression coefficient", y = "Independent variables") +
+  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
+a2 = dwplot(disorder_glm) +
+  ggtitle("Stratigraphic disorder") + 
+  labs(x = "Regression coefficient", y = "Independent variables") +
+  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
+p = egg::ggarrange(a1, a2)
+ggsave("figs/regression_coefficients.jpeg", p)
+
+da = data.frame(tavg_st = scale(ta), disorder_st = scale(di),
+                m_st = scale(m1), l_st = scale(l1), s_st = scale(s1))
+
+tavg_glm_std = glm(tavg_st ~ m_st + l_st + s_st, data = da)
+disorder_glm_std = glm(disorder_st ~ m_st + l_st + s_st, data = da)
+
+summary(tavg_glm_std)
+summary(disorder_glm_std)
+a1 = dwplot(tavg_glm_std) +
+  ggtitle("Time-averaging") +
+  labs(x = "Normalized regression coefficient", y = "Independent variables") +
+  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
+a2 = dwplot(disorder_glm_std) +
+  ggtitle("Stratigraphic disorder") +
+  labs(x = "Normalized regression coefficient", y = "Independent variables") +
+  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
+p = egg::ggarrange(a1, a2)
+ggsave("figs/regression_coefficients_normalized.jpeg", p)
+
+rsq_part_disorder_std = rsq::rsq.partial(disorder_glm_std,adj=TRUE)
+rsq_part_tavg_std = rsq::rsq.partial(tavg_glm_std, adj = TRUE)
+
+
 #### LM water depth vs tavg and disorder ####
 logtavg = log10(df$tavg)
 wd_l = log10(df$wd)
