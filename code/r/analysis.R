@@ -134,11 +134,11 @@ a2 = dwplot(disorder_glm) +
 p = egg::ggarrange(a1, a2)
 ggsave("figs/regression_coefficients.jpeg", p)
 
-da = data.frame(tavg_st = scale(ta), disorder_st = scale(di),
+data = data.frame(tavg_st = scale(ta), disorder_st = scale(di),
                 m_st = scale(m1), l_st = scale(l1), s_st = scale(s1))
 
-tavg_glm_std = glm(tavg_st ~ m_st + l_st + s_st, data = da)
-disorder_glm_std = glm(disorder_st ~ m_st + l_st + s_st, data = da)
+tavg_glm_std = glm(tavg_st ~ m_st + l_st + s_st, data = data)
+disorder_glm_std = glm(disorder_st ~ m_st + l_st + s_st, data = data)
 
 summary(tavg_glm_std)
 summary(disorder_glm_std)
