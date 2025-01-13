@@ -1,8 +1,13 @@
 #### Load required packages ####
 library(ggplot2)
+library(dotwhisker)
+library(gapminder)
 
 #### Set seed ####
 set.seed(42)
+
+# threshold for multicollinearity 
+vif_threshold = 3
 
 #### Load SMLBase and clean it ####
 smlbase = read.csv(file = "data/smlbase/SMLBase_v1_04.csv", sep = ",")
@@ -89,11 +94,16 @@ di = log10(df$disorder)
 tavg_glm = glm(ta ~ m1 + s1 + l1)
 disorder_glm = stats::glm(di ~ m1 + s1 + l1)
 
+# Write summary to csv file
 x = summary(tavg_glm)
-write.csv(as.data.frame(x$coefficients), file = "data/res/tavg_glm_res.csv")
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/tavg_glm_res.csv")
 
 x = summary(disorder_glm)
-write.csv(as.data.frame(x$coefficients), file = "data/res/disorder_glm_res.csv")
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/disorder_glm_res.csv")
 
 ## Check for multicolinearity
 dd = data.frame(m1, s1, l1)
@@ -101,7 +111,7 @@ cor_mat = cor(dd)
 # check variance inflation factors
 vif_tavg = car::vif(tavg_glm)
 vif_disorder = car::vif(disorder_glm)
-if (any(vif_disorder> 5) | any(vif_tavg > 5)){ 
+if (any(vif_disorder> vif_threshold) | any(vif_tavg > vif_threshold)){ 
   stop("Multicolinearity detected")  
 }
 
@@ -115,43 +125,32 @@ results[c("coeff disorder D_b", "coeff disorder S", "coeff disorder L")] = round
 results[c("partial R2 tavg D_b", "partial R2 tavg S", "partial R2 tavg L")] = round(rsq_part_tavg$partial.rsq, round_res)
 results[c("coeff tavg D_b", "coeff tavg S", "coeff tavg L")] = round(tavg_glm$coefficients[-1], round_res)
 
-#### Coefficient plot ####
+#### Normalized regression ####
+data = data.frame(tavg_st = scale(ta),
+                  disorder_st = scale(di),
+                  m_st = scale(m1),
+                  l_st = scale(l1),
+                  s_st = scale(s1))
 
-# install.packages("dotwhisker")
-# install.packages("gapminder")
+tavg_glm_std = glm(tavg_st ~ m_st  + s_st + l_st, data = data)
+disorder_glm_std = glm(disorder_st ~ m_st  + s_st + l_st, data = data)
 
-library(dotwhisker)
-library(gapminder)
+vif_tavg_std = car::vif(tavg_glm_std)
+vif_disorder_std = car::vif(disorder_glm_std)
+if (any(vif_disorder_std> vif_threshold) | any(vif_tavg_std > vif_threshold)){ 
+  stop("Multicolinearity detected")  
+}
 
-a1 = dwplot(tavg_glm) +
-  ggtitle("Time-averaging") + 
-  labs(x = "Regression coefficient", y = "Independent variables") +
-  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
-a2 = dwplot(disorder_glm) +
-  ggtitle("Stratigraphic disorder") + 
-  labs(x = "Regression coefficient", y = "Independent variables") +
-  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
-p = egg::ggarrange(a1, a2)
-ggsave("figs/regression_coefficients.jpeg", p)
+# write summary to csv
+x = summary(tavg_glm_std)
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/tavg_glm_std_res.csv")
 
-data = data.frame(tavg_st = scale(ta), disorder_st = scale(di),
-                m_st = scale(m1), l_st = scale(l1), s_st = scale(s1))
-
-tavg_glm_std = glm(tavg_st ~ m_st + l_st + s_st, data = data)
-disorder_glm_std = glm(disorder_st ~ m_st + l_st + s_st, data = data)
-
-summary(tavg_glm_std)
-summary(disorder_glm_std)
-a1 = dwplot(tavg_glm_std) +
-  ggtitle("Time-averaging") +
-  labs(x = "Normalized regression coefficient", y = "Independent variables") +
-  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
-a2 = dwplot(disorder_glm_std) +
-  ggtitle("Stratigraphic disorder") +
-  labs(x = "Normalized regression coefficient", y = "Independent variables") +
-  scale_y_discrete(labels = c("log10(D_b)", "log10(S)", "log10(L)"))
-p = egg::ggarrange(a1, a2)
-ggsave("figs/regression_coefficients_normalized.jpeg", p)
+x = summary(disorder_glm_std)
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/disorder_glm_std_res.csv")
 
 rsq_part_disorder_std = rsq::rsq.partial(disorder_glm_std,adj=TRUE)
 rsq_part_tavg_std = rsq::rsq.partial(tavg_glm_std, adj = TRUE)
@@ -409,6 +408,37 @@ make_supp_fig_2 = function(){
   ggsave("figs/supp_Figure2.png", figure)
 }
 make_supp_fig_2()
+
+#### Coefficient plot ####
+
+make_coeff_plots = function(){
+  a1 = dwplot(tavg_glm) +
+    ggtitle("Time-averaging") + 
+    labs(x = "Regression coefficient", y = "Independent variables")   +
+    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)"))) +
+    geom_vline(xintercept = 0, linetype = "dashed")
+  a2 = dwplot(tavg_glm_std) +
+    labs(x = "Beta coefficient", y = "Independent variables") +
+    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
+    geom_vline(xintercept = 0, linetype = "dashed")
+  p = egg::ggarrange(a1, a2)
+  ggsave("figs/regression_coefficients_tavg.png", p)
+  
+  a1 = dwplot(disorder_glm) +
+    ggtitle("Stratigraphic disorder") + 
+    labs(x = "Regression coefficient", y = "Independent variables") +
+    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
+    geom_vline(xintercept = 0, linetype = "dashed")
+  a2 = dwplot(disorder_glm_std) +
+    labs(x = "Beta coefficient", y = "Independent variables") +
+    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
+    geom_vline(xintercept = 0, linetype = "dashed")
+  p = egg::ggarrange(a1, a2)
+  ggsave("figs/regression_coefficients_disorder.png", p)
+}
+
+make_coeff_plots()
+
 
 #### Save results ####
 re.df = data.frame(description = names(results), values = unname(results))
