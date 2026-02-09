@@ -274,6 +274,22 @@
       ],
       "Hash": "e1e1b9d75c37401117b636b7ae50827a"
     },
+    "bayestestR": {
+      "Package": "bayestestR",
+      "Version": "0.15.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "datawizard",
+        "graphics",
+        "insight",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "d7c05ccb9d60d87dbbe8b4042c385f01"
+    },
     "bit": {
       "Package": "bit",
       "Version": "4.5.0.1",
@@ -476,6 +492,19 @@
       ],
       "Hash": "e8ba62486230951fcd2b881c5be23f96"
     },
+    "datawizard": {
+      "Package": "datawizard",
+      "Version": "0.13.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "insight",
+        "stats",
+        "utils"
+      ],
+      "Hash": "303aeace6f3554ce2d62e5d1df6fcd6e"
+    },
     "deming": {
       "Package": "deming",
       "Version": "1.4-1",
@@ -522,6 +551,29 @@
         "tidyr"
       ],
       "Hash": "8ddf795104defe53c5392a588888ec68"
+    },
+    "dotwhisker": {
+      "Package": "dotwhisker",
+      "Version": "0.8.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "dplyr",
+        "ggplot2",
+        "ggstance",
+        "grid",
+        "gridExtra",
+        "gtable",
+        "parameters",
+        "patchwork",
+        "performance",
+        "purrr",
+        "rlang",
+        "stats",
+        "stringr"
+      ],
+      "Hash": "12b2fa2b425c06ce75d8ae2b5efd84b1"
     },
     "dplyr": {
       "Package": "dplyr",
@@ -611,6 +663,17 @@
       ],
       "Hash": "7f48af39fa27711ea5fbd183b399920d"
     },
+    "gapminder": {
+      "Package": "gapminder",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "tibble"
+      ],
+      "Hash": "3a6fab978494586e851b8763996821d6"
+    },
     "generics": {
       "Package": "generics",
       "Version": "0.1.3",
@@ -646,6 +709,21 @@
         "withr"
       ],
       "Hash": "44c6a2f8202d5b7e878ea274b1092426"
+    },
+    "ggstance": {
+      "Package": "ggstance",
+      "Version": "0.3.7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "ggplot2",
+        "plyr",
+        "rlang",
+        "withr"
+      ],
+      "Hash": "cb7032245f8eac9e9bd0483b1118dbbe"
     },
     "glue": {
       "Package": "glue",
@@ -727,6 +805,19 @@
         "openssl"
       ],
       "Hash": "ac107251d9d9fd72f0ca8049988f1d7f"
+    },
+    "insight": {
+      "Package": "insight",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "bee0c3abb5eea6c4170ea2a7c334893f"
     },
     "isoband": {
       "Package": "isoband",
@@ -1007,6 +1098,42 @@
       ],
       "Hash": "5bfe2927efa9f87766ca9605301ea48f"
     },
+    "parameters": {
+      "Package": "parameters",
+      "Version": "0.24.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "bayestestR",
+        "datawizard",
+        "graphics",
+        "insight",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "42e4417823caf935fcc47a88ad4706e7"
+    },
+    "patchwork": {
+      "Package": "patchwork",
+      "Version": "1.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "cli",
+        "farver",
+        "ggplot2",
+        "grDevices",
+        "graphics",
+        "grid",
+        "gtable",
+        "rlang",
+        "stats",
+        "utils"
+      ],
+      "Hash": "e23fb9ecb1258207bcb763d78d513439"
+    },
     "pbkrtest": {
       "Package": "pbkrtest",
       "Version": "0.5.3",
@@ -1024,6 +1151,21 @@
         "numDeriv"
       ],
       "Hash": "938e6bbc4ac57534f8b43224506a8966"
+    },
+    "performance": {
+      "Package": "performance",
+      "Version": "0.12.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "bayestestR",
+        "datawizard",
+        "insight",
+        "stats",
+        "utils"
+      ],
+      "Hash": "64e61921ea6b2a4d76c81290d5ecce25"
     },
     "pillar": {
       "Package": "pillar",
