@@ -48,7 +48,7 @@ This repository contains data from
 
 ## Copyright
 
-Copyright 2023-2024 Netherlands eScience Center and Utrecht University
+Copyright 2023-2026 Netherlands eScience Center and Utrecht University
 
 ## License
 

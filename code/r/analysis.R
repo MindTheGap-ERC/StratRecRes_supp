@@ -265,7 +265,7 @@ make_fig_3 = function(){
   rsq = rsq_part_tavg
   # sed rate
   vv = paste(": ", round(rsq$partial.rsq[2], 3))
-  annot = bquote(partial ~ R^2* .(vv))
+  annot = as.expression(bquote(partial ~ R^2* .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["s1"], 4))
   tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
                                    gg = TRUE) +
@@ -280,7 +280,7 @@ make_fig_3 = function(){
   
   # biodiffusion
   vv = paste(": ", round(rsq$partial.rsq[1], 3))
-  annot = bquote(partial ~ R^2*  .(vv))
+  annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["m1"], 3))
   tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
                                    gg = TRUE) +
@@ -294,7 +294,7 @@ make_fig_3 = function(){
   
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
-  annot = bquote(partial ~ R^2*  .(vv))
+  annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["l1"], 3))
   tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
                                   gg = TRUE) +
@@ -310,7 +310,7 @@ make_fig_3 = function(){
   rsq = rsq_part_disorder
   # sedimentation rate
   vv = paste(": ", round(rsq$partial.rsq[2], 3))
-  annot = bquote(partial ~ R^2*  .(vv))
+  annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["s1"], 3))
   disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
                                        gg = TRUE) +
@@ -324,7 +324,7 @@ make_fig_3 = function(){
   
   # biodiffusion
   vv = paste(": ", round(rsq$partial.rsq[1], 3))
-  annot = bquote(partial ~ R^2*  .(vv))
+  annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["m1"], 3))
   disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
                                        gg = TRUE) +
@@ -338,7 +338,7 @@ make_fig_3 = function(){
   
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
-  annot = bquote(partial ~ R^2*  .(vv))
+  annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["l1"], 3))
   disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
                                       gg = TRUE) +
