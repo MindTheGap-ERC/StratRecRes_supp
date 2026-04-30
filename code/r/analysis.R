@@ -4,7 +4,7 @@ library(dotwhisker)
 library(gapminder)
 
 #### Set seed ####
-set.seed(42)
+set.seed(296573) # generated via random.org
 
 # threshold for multicollinearity 
 vif_threshold = 3
@@ -94,6 +94,9 @@ di = log10(df$disorder)
 tavg_glm = glm(ta ~ m1 + s1 + l1)
 disorder_glm = stats::glm(di ~ m1 + s1 + l1)
 
+step(tavg_glm)
+step(disorder_glm)
+
 # Write summary to csv file
 x = summary(tavg_glm)
 coeff = as.data.frame(x$coefficients)
@@ -140,6 +143,9 @@ vif_disorder_std = car::vif(disorder_glm_std)
 if (any(vif_disorder_std> vif_threshold) | any(vif_tavg_std > vif_threshold)){ 
   stop("Multicolinearity detected")  
 }
+
+step(tavg_glm_std)
+step(disorder_glm_std)
 
 # write summary to csv
 x = summary(tavg_glm_std)
