@@ -381,18 +381,9 @@ make_fig_4 = function(){
 }
 make_fig_4()
 
-#### Supplementary Figure 1 ####
-make_supp_fig_1 = function(){
-  ggplot(df, aes(x = F_mix)) + 
-    geom_histogram(bins = 30) +
-    xlab(expression(Distribution ~ of ~ F[mix])) +
-    ylab("Count")
-  ggsave("figs/supp_Figure1.png")
-}
-make_supp_fig_1()
 
-#### Supplementary figure 2 ####
-make_supp_fig_2 = function(){
+#### Figure: Overview of SML parameters ####
+plot_sml_overview_fig = function(){
   mix_label =  expression( log[10] (  Biodiffusion)*""  ~  group("[",cm^2/a,"]") )
   p_m = ggplot(df, aes(x = M)) + 
     geom_histogram(bins = 30) + 
@@ -408,43 +399,107 @@ make_supp_fig_2 = function(){
     scale_x_log10() +
     xlab("log10(Sedimentation Rate) [cm/a]") +
     ylab("Count")
+  p_fmix = ggplot(df, aes(x = F_mix)) + 
+    geom_histogram(bins = 30) +
+    xlab(expression(F[mix] * " [-]")) +
+    ylab("Count")
   
-  figure = egg::ggarrange(p_m, p_l, p_s, labels = c("A", "B", "C"), ncol = 2, nrow = 2,
-                          draw = FALSE)
-  ggsave("figs/supp_Figure2.png", figure)
+  p = ggpubr::ggarrange(p_m, p_l, p_s, p_fmix,
+                          labels = LETTERS[1:4],
+                          ncol = 2, nrow = 2)
+  return(p)
 }
-make_supp_fig_2()
+ggsave(filename = "figs/sml_overview.png",
+       plot = plot_sml_overview_fig(),
+       bg = "white")
 
 #### Coefficient plot ####
 
 make_coeff_plots = function(){
-  a1 = dwplot(tavg_glm) +
+  dot_args = list(size = 3)
+  whisker_args = list(size = 1)
+  y_axis_labels = labels = rev(c(
+    expression(log[10](D[b])),
+    expression(log[10](S)),
+    expression(log[10](L))
+  ))
+  a1 = dwplot(tavg_glm,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
     ggtitle("Time-averaging") + 
     labs(x = "Regression coefficient", y = "Independent variables")   +
-    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)"))) +
-    geom_vline(xintercept = 0, linetype = "dashed")
-  a2 = dwplot(tavg_glm_std) +
+    scale_y_discrete(labels = y_axis_labels) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
+  a2 = dwplot(tavg_glm_std,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
+    ggtitle("") +
     labs(x = "Beta coefficient", y = "Independent variables") +
-    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
-    geom_vline(xintercept = 0, linetype = "dashed")
-  p = egg::ggarrange(a1, a2)
-  ggsave("figs/regression_coefficients_tavg.png", p)
+    scale_y_discrete(labels = y_axis_labels)+
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
   
-  a1 = dwplot(disorder_glm) +
+  a3 = dwplot(disorder_glm,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
     ggtitle("Stratigraphic disorder") + 
     labs(x = "Regression coefficient", y = "Independent variables") +
-    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
-    geom_vline(xintercept = 0, linetype = "dashed")
-  a2 = dwplot(disorder_glm_std) +
+    scale_y_discrete(labels = y_axis_labels)+
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
+  a4 = dwplot(disorder_glm_std,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
+    ggtitle("") +
     labs(x = "Beta coefficient", y = "Independent variables") +
-    scale_y_discrete(labels = rev(c("log10(D_b)", "log10(S)", "log10(L)")))+
-    geom_vline(xintercept = 0, linetype = "dashed")
-  p = egg::ggarrange(a1, a2)
-  ggsave("figs/regression_coefficients_disorder.png", p)
+    scale_y_discrete(labels = y_axis_labels)+
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
+  p = ggpubr:: ggarrange(a1, a2, a3, a4,
+                         ncol = 2,
+                         nrow = 2,
+                         labels = LETTERS[1:4])
+  return(p)
 }
 
-make_coeff_plots()
+ggsave(filename = "figs/coefficient_plots.png",
+       plot = make_coeff_plots(),
+       bg = "white")
 
+#### Plot dimensionless ADM ####
+# serves as basis for Fig 2?
+plot_adm_dimless_sketch = function(){
+  i = 25 # select one density of the many calculated in Matlab
+  x = t_dimless
+  y = tavg_list[[i]]$den
+  #plot(x, y, type = "l")
+  # specifies ADM dimensionless (assuming the SML is well mixed)
+  # below the sml (d < 1) adm is specified by eq 3 main text
+  f = function(a, d){
+    z = approx(x = d - 1 + t_dimless- 0.3, y = y, xout = a, rule = 2)$y
+    z[d < 1] = approx(x = t_dimless - 0.3, y = y, xout = a, rule = 2)$y
+    return(z)
+  }
+  
+  a = seq(0, 4, by = 0.05)
+  d = seq(0, 4, by = 0.05)
+  df = expand.grid(a, d)
+  df$z = mapply(f, df$Var1, df$Var2)
+  p = ggplot(df, aes(x = Var1, y = Var2, fill = z)) +
+    geom_raster(interpolate = TRUE) +
+    scale_fill_gradient(low = "black", # linear white scale from min to max
+                        high = "white",
+                        trans = "sqrt") + # nonlinear trans to buff low values
+    scale_y_reverse() +
+    labs(x = "Dimensionless Age [-]",
+         y = "Dimensionless Depth [-]") +
+    theme(legend.position = "none")
+  return(p)
+}
+
+ggsave(filename = "figs/adm_dimless_whitescale.tiff",
+       plot = plot_adm_dimless_sketch())
 
 #### Save results ####
 re.df = data.frame(description = names(results), values = unname(results))
