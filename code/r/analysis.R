@@ -91,8 +91,8 @@ l1 = log10(df$L)
 ta = log10(df$tavg)
 di = log10(df$disorder)
 
-tavg_glm = glm(ta ~ m1 + s1 + l1)
-disorder_glm = stats::glm(di ~ m1 + s1 + l1)
+tavg_glm = glm(ta ~  s1 +  m1 +l1)
+disorder_glm = stats::glm(di ~ s1 +  m1 +l1)
 
 step(tavg_glm)
 step(disorder_glm)
@@ -109,7 +109,7 @@ coeff[,1:3] = round(coeff[,1:3], 3)
 write.csv(coeff, file = "data/res/disorder_glm_res.csv")
 
 ## Check for multicolinearity
-dd = data.frame(m1, s1, l1)
+dd = data.frame( s1, m1, l1)
 cor_mat = cor(dd)
 # check variance inflation factors
 vif_tavg = car::vif(tavg_glm)
@@ -135,8 +135,8 @@ data = data.frame(tavg_st = scale(ta),
                   l_st = scale(l1),
                   s_st = scale(s1))
 
-tavg_glm_std = glm(tavg_st ~ m_st  + s_st + l_st, data = data)
-disorder_glm_std = glm(disorder_st ~ m_st  + s_st + l_st, data = data)
+tavg_glm_std = glm(tavg_st ~ s_st + m_st  +  l_st, data = data)
+disorder_glm_std = glm(disorder_st ~ s_st + m_st  +  l_st, data = data)
 
 vif_tavg_std = car::vif(tavg_glm_std)
 vif_disorder_std = car::vif(disorder_glm_std)
@@ -181,7 +181,7 @@ df_te = data.frame("age" = to2$Age[!is.na(to2$Age)], "depth" = as.numeric(to2$ma
 results["IQR 110 cm depth Po4"] = IQR(df_te$age[df_te$depth == 110])
 results["deepest C. gibba shell younger than 25 years in Po4"] = max(df_te$depth[df_te$age <= 25])
 
-make_fig_1 = function(){
+plot_adms = function(){
   # remove samples deeper and older than plot boundaries
   df_te = dplyr::filter(df_te, depth <= depth_lim & age <= age_lim)
   p1 = ggplot(df_te, aes(x = age, y = depth)) + 
@@ -208,17 +208,19 @@ make_fig_1 = function(){
     scale_color_viridis_c()
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
-  jo = egg::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"), draw = FALSE)
-  ggsave("figs/Figure1.png", jo)
+  p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"))
+  return(p)
+
 }
-make_fig_1()
+ggsave(filename = "figs/adms_po_and_modeled.png",
+       plot = plot_adms(),
+       bg = "white")
 
 #### Figure 2: histogram of mixing intensity and F_mix ####
 fmix_label =  expression( F[mix] )  #"log10(Mixing depth) [cm]"
 g_label =  expression( log[10]* group("(", G,")")  ~  group("[","-","]") )  #"log10(Mixing depth) [cm]"
 
-
-make_fig_2 = function(){
+plot_dimless_mixing_and_tavg = function(){
   aa = par(no.readonly = TRUE)
   pe_min_log = min(-log10(peclet_numbers))
   pe_max_log = max(-log10(peclet_numbers))
@@ -226,7 +228,7 @@ make_fig_2 = function(){
   tavg_lwd = 3
   tavg_col = "black"
   a = hist(-log10(df$Pe), plot = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
-  png("figs/Figure2.png",
+  png("figs/dimless_mixing_and_tavg.png",
       width = )
   par(mar = c(5.1, 4.1, 4.1, 4.1))
   plot(-log10(peclet_numbers), tavg_dimless, type = "l",
@@ -247,7 +249,7 @@ make_fig_2 = function(){
   par(new = FALSE)
   dev.off()
 }
-make_fig_2()
+plot_dimless_mixing_and_tavg()
 
 #### Figure 3: GLM plot ####
 sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
@@ -266,7 +268,7 @@ y_axis_text_size_pts = 7
 glm_plot_height_cm = 14
 annot_size_pts = 7
 
-make_fig_3 = function(){
+plot_glm_summary_fig = function(){
   ## time averaging
   rsq = rsq_part_tavg
   # sed rate
@@ -356,30 +358,69 @@ make_fig_3 = function(){
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
   
-  figure = egg::ggarrange(tavg_glm_plot_s, tavg_glm_plot_l, tavg_glm_plot_m,
-                          disorder_glm_plot_s, disorder_glm_plot_l, disorder_glm_plot_m,
+  figure = ggpubr::ggarrange(tavg_glm_plot_s,  tavg_glm_plot_m, tavg_glm_plot_l,
+                          disorder_glm_plot_s,  disorder_glm_plot_m, disorder_glm_plot_l,
                           nrow = 2, ncol = 3,
-                          labels = LETTERS[1:6],
-                          draw = FALSE)
-  ggsave("figs/Figure3.png", figure,
-         width = two_col_width_cm, units = c("cm"),
-         height = glm_plot_height_cm)
+                          labels = LETTERS[1:6])
+  return(figure)
 }
 
-make_fig_3()
 
-#### Figure 4: water depth vs tavg and disorder ####
-make_fig_4 = function(){
+ggsave("figs/glm_summary_fig.png", 
+       plot = plot_glm_summary_fig(),
+       width = two_col_width_cm,
+       units = c("cm"),
+       height = glm_plot_height_cm,
+       bg = "white")
+
+#### figure: water depth vs tavg and disorder ####
+signif_dig = 3
+plot_wd_vs_params = function(){
+  tavg_r2 = summary(lm_tavg_wd)$adj.r.squared |> signif(digits = signif_dig)
+  tavg_slope = lm_tavg_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
+  disorder_r2 = summary(lm_disorder_wd)$adj.r.squared |> signif(digits = signif_dig)
+  disorder_slope = lm_disorder_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
+  
+  
+  yrange = range(log10(df$tavg))
+  vv = paste0(": ", tavg_r2)
+  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+  slope_annot = paste("Slope:", tavg_slope)
   lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
     xlab(wd_label) +
-    ylab(tavg_label)
+    ylab(tavg_label) +
+    annotate("text",
+             y = 0.9 * max(yrange),
+             x = mean(range(log10(df$wd))),
+             label = annot) +
+    annotate("text",
+             x = mean(range(log10(df$wd))),
+             y = 1 * max(yrange),
+             label = slope_annot)
+  
+  yrange = range(log10(df$disorder))
+  vv = paste0(": ", disorder_r2)
+  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+  slope_annot = paste("Slope:", disorder_slope)
   lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
     xlab(wd_label) +
-    ylab(disorder_label)
-  fig = egg::ggarrange(lm1, lm2, ncol = 2, draw = FALSE, labels = c("A", "B"))
-  ggsave("figs/Figure4.png", fig)
+    ylab(disorder_label)+
+    annotate("text",
+             y = 0.9 * max(yrange),
+             x = mean(range(log10(df$wd))),
+             label = annot) +
+    annotate("text",
+             x = mean(range(log10(df$wd))),
+             y = 1 * max(yrange),
+             label = slope_annot)
+  p = ggpubr::ggarrange(lm1, lm2, ncol = 2, nrow = 1,
+                          labels = LETTERS[1:2])
+  return(p)
 }
-make_fig_4()
+
+ggsave(filename = "figs/water_depth_vs_params.png",
+       plot = plot_wd_vs_params(),
+       bg = "white")
 
 
 #### Figure: Overview of SML parameters ####
@@ -404,7 +445,7 @@ plot_sml_overview_fig = function(){
     xlab(expression(F[mix] * " [-]")) +
     ylab("Count")
   
-  p = ggpubr::ggarrange(p_m, p_l, p_s, p_fmix,
+  p = ggpubr::ggarrange(p_s, p_m, p_l, p_fmix,
                           labels = LETTERS[1:4],
                           ncol = 2, nrow = 2)
   return(p)
@@ -419,8 +460,8 @@ make_coeff_plots = function(){
   dot_args = list(size = 3)
   whisker_args = list(size = 1)
   y_axis_labels = labels = rev(c(
-    expression(log[10](D[b])),
     expression(log[10](S)),
+    expression(log[10](D[b])),
     expression(log[10](L))
   ))
   a1 = dwplot(tavg_glm,
