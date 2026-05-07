@@ -523,8 +523,8 @@ plot_adm_dimless_sketch = function(){
     return(z)
   }
   
-  a = seq(0, 4, by = 0.05)
-  d = seq(0, 4, by = 0.05)
+  a = seq(0, 3, by = 0.05)
+  d = seq(0, 3, by = 0.05)
   df = expand.grid(a, d)
   df$z = mapply(f, df$Var1, df$Var2)
   p = ggplot(df, aes(x = Var1, y = Var2, fill = z)) +
@@ -541,6 +541,85 @@ plot_adm_dimless_sketch = function(){
 
 ggsave(filename = "figs/adm_dimless_whitescale.tiff",
        plot = plot_adm_dimless_sketch())
+
+plot_dimless_add = function(){
+  d_select = 1.2
+  a_select = 2.8
+  a = seq(0, 4, by = 0.05)
+  d = seq(0, 4, by = 0.05)
+  
+  i = 25 # select one density of the many calculated in Matlab
+  x = t_dimless
+  y = tavg_list[[i]]$den
+  #plot(x, y, type = "l")
+  # specifies ADM dimensionless (assuming the SML is well mixed)
+  # below the sml (d < 1) adm is specified by eq 3 main text
+  f = function(a, d){
+    z = approx(x = d - 1 + t_dimless- 0.3, y = y, xout = a, rule = 2)$y
+    z[d < 1] = approx(x = t_dimless - 0.3, y = y, xout = a, rule = 2)$y
+    return(z)
+  }
+  
+  fixed_depth_color = "black"
+  fixed_age_color = "red"
+  transect_width = 2
+  df = expand.grid(a, d)
+  df$z = mapply(f, df$Var1, df$Var2)
+  p1 = ggplot(df, aes(x = Var1, y = Var2, z = z)) +
+    geom_contour_filled(breaks = sort(seq(0,1.1, by = 0.1))) +
+    geom_contour(aes(z = z), color = "black", linewidth = 0.4,
+                 breaks = sort(seq(0,1.1, by = 0.1))) +
+    labs(x = "Age [-]",
+         y = "Depth [-]") +
+    annotate("segment",
+             x = min(a), xend = max(a),
+             y = d_select, yend = d_select,
+             linewidth =transect_width,
+             color = fixed_depth_color) +  
+    annotate("segment",
+             x = a_select, xend = a_select,
+             y = min(d), yend = max(d),
+             linewidth = transect_width,
+             color = fixed_age_color) +
+    coord_cartesian(clip = "on") +
+    scale_y_reverse() +
+    theme(legend.position = "none")
+  
+  
+  df1 = data.frame(d = d, den_vals =  mapply(f, a_select, d))
+  p2 = df1 |> ggplot(aes(x =  d, y = den_vals)) +
+    geom_line(color = fixed_age_color,
+              linewidth = transect_width) +
+    coord_flip() +
+    scale_x_reverse() +
+    labs(x = "Depth [-]",
+         y = "Density")
+  
+  df2 = data.frame(a = a, den_vals = mapply(f, a, d_select))
+  p3 = df2 |> ggplot(aes(x = a, y = den_vals)) +
+    geom_line(color = fixed_depth_color,
+              linewidth = transect_width) +
+    labs(x = "Age [-]",
+         y = "Density")
+  
+  p4 = NULL
+  
+  p = ggpubr::ggarrange(p1, p2, p3, p4,
+                        nrow = 2, 
+                        ncol = 2,
+                        widths = c(2,1),
+                        heights = c(2,1))
+  return(p)
+}
+
+
+
+ggsave(filename = "figs/dimless_adm.png",
+       plot = plot_dimless_add(),
+       height = 7,
+       width = 7,
+       bg = "white")
+
 
 #### Save results ####
 re.df = data.frame(description = names(results), values = unname(results))
