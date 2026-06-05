@@ -543,7 +543,7 @@ ggsave(filename = "figs/adm_dimless_whitescale.tiff",
        plot = plot_adm_dimless_sketch())
 
 plot_dimless_add = function(){
-  d_select = 1.2
+  d_select = 1.0
   a_select = 2.8
   a = seq(0, 4, by = 0.05)
   d = seq(0, 4, by = 0.05)
@@ -570,7 +570,8 @@ plot_dimless_add = function(){
     geom_contour(aes(z = z), color = "black", linewidth = 0.4,
                  breaks = sort(seq(0,1.1, by = 0.1))) +
     labs(x = "Age [-]",
-         y = "Depth [-]") +
+         y = "Depth [-]",
+         title = "") +
     annotate("segment",
              x = min(a), xend = max(a),
              y = d_select, yend = d_select,
@@ -593,14 +594,16 @@ plot_dimless_add = function(){
     coord_flip() +
     scale_x_reverse() +
     labs(x = "Depth [-]",
-         y = "Density")
+         y = expression("Density " ~ f[dis]),
+         title = "")
   
   df2 = data.frame(a = a, den_vals = mapply(f, a, d_select))
   p3 = df2 |> ggplot(aes(x = a, y = den_vals)) +
     geom_line(color = fixed_depth_color,
               linewidth = transect_width) +
     labs(x = "Age [-]",
-         y = "Density")
+         y = expression("Density " ~ f[tavg]),
+         title = "")
   
   p4 = NULL
   
@@ -608,13 +611,14 @@ plot_dimless_add = function(){
                         nrow = 2, 
                         ncol = 2,
                         widths = c(2,1),
-                        heights = c(2,1))
+                        heights = c(2,1),
+                        labels = LETTERS[1:3])
   return(p)
 }
 
 
 
-ggsave(filename = "figs/dimless_adm.png",
+ggsave(filename = "figs/dimless_add.png",
        plot = plot_dimless_add(),
        height = 7,
        width = 7,
