@@ -558,6 +558,9 @@ plot_dimless_add = function(){
   p2 = df1 |> ggplot(aes(x =  d, y = den_vals)) +
     geom_line(color = fixed_age_color,
               linewidth = transect_width) +
+    geom_vline(xintercept = d_select,
+               linetype = "dashed",
+               color = fixed_depth_color) +
     coord_flip() +
     scale_x_reverse() +
     labs(x = "Depth [-]",
@@ -568,6 +571,9 @@ plot_dimless_add = function(){
   p3 = df2 |> ggplot(aes(x = a, y = den_vals)) +
     geom_line(color = fixed_depth_color,
               linewidth = transect_width) +
+    geom_vline(xintercept = a_select,
+               linetype = "dashed",
+               color = fixed_age_color) +
     labs(x = "Age [-]",
          y = expression("Density " ~ f[tavg]),
          title = "")
