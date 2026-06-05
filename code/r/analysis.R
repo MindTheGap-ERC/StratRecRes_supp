@@ -509,39 +509,6 @@ ggsave(filename = "figs/coefficient_plots.png",
        bg = "white")
 
 #### Plot dimensionless ADM ####
-# serves as basis for Fig 2?
-plot_adm_dimless_sketch = function(){
-  i = 25 # select one density of the many calculated in Matlab
-  x = t_dimless
-  y = tavg_list[[i]]$den
-  #plot(x, y, type = "l")
-  # specifies ADM dimensionless (assuming the SML is well mixed)
-  # below the sml (d < 1) adm is specified by eq 3 main text
-  f = function(a, d){
-    z = approx(x = d - 1 + t_dimless- 0.3, y = y, xout = a, rule = 2)$y
-    z[d < 1] = approx(x = t_dimless - 0.3, y = y, xout = a, rule = 2)$y
-    return(z)
-  }
-  
-  a = seq(0, 3, by = 0.05)
-  d = seq(0, 3, by = 0.05)
-  df = expand.grid(a, d)
-  df$z = mapply(f, df$Var1, df$Var2)
-  p = ggplot(df, aes(x = Var1, y = Var2, fill = z)) +
-    geom_raster(interpolate = TRUE) +
-    scale_fill_gradient(low = "black", # linear white scale from min to max
-                        high = "white",
-                        trans = "sqrt") + # nonlinear trans to buff low values
-    scale_y_reverse() +
-    labs(x = "Dimensionless Age [-]",
-         y = "Dimensionless Depth [-]") +
-    theme(legend.position = "none")
-  return(p)
-}
-
-ggsave(filename = "figs/adm_dimless_whitescale.tiff",
-       plot = plot_adm_dimless_sketch())
-
 plot_dimless_add = function(){
   d_select = 1.0
   a_select = 2.8
