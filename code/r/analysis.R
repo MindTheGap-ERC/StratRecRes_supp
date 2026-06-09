@@ -68,7 +68,7 @@ df$tavg_max = tavg_fun(Pe = df$Pe_min, S = df$S_min, L = df$L_max)
 df$tavg_min = tavg_fun(Pe = df$Pe_max,  S = df$S_max, L = df$L_min)
 df$disorder_max = disorder_fun(Pe = df$Pe_min, L = df$L_max)
 df$disorder_min = disorder_fun(Pe = df$Pe_max, L = df$L_min)
-df$F_mix = approx(log10(peclet_numbers), tavg_dimless, xout = df$Pe, rule = 2)$y
+df$F_mix = approx(peclet_numbers, tavg_dimless, xout = df$Pe, rule = 2)$y
 
 #hist(log10(df$tavg))
 #hist(df$disorder)
@@ -76,6 +76,7 @@ df$F_mix = approx(log10(peclet_numbers), tavg_dimless, xout = df$Pe, rule = 2)$y
 #### Empirical results from SMLBase ####
 results = c()
 round_res = 3
+signif_digits = 3
 results["median log10 G"] = round(median(log10(df$G)), round_res)
 results["1st quartile log10 G"] = round(quantile(log10(df$G), p = 0.25), round_res)
 results["3rd quartile log10 G"] = round(quantile(log10(df$G), p = 0.75), round_res)
@@ -84,6 +85,12 @@ results["lower bound HDR log10 G"] = round(quantile(log10(df$G), p = 0.025), rou
 results["upper bound HDR log10 G"] = round(quantile(log10(df$G), p = 1 - 0.025), round_res)
 results["median F_mix"] = round(median(df$F_mix), round_res)
 
+F_mix_threshold = 0.9 * max(tavg_dimless)
+ff = function(x) approx(x = -log10(peclet_numbers), y = tavg_dimless - F_mix_threshold, xout = x)$y
+G_threshold = 10^uniroot(ff, interval = c(-2,2))$root 
+
+results["F_mix saturation threshold"] = F_mix_threshold |> signif(digits = signif_digits)
+results["G saturation threshold"] = G_threshold |> signif(digits = signif_digits)
 #### GLMs ####
 m1 = log10(df$M)
 s1 = log10(df$S)
@@ -217,39 +224,110 @@ ggsave(filename = "figs/adms_po_and_modeled.png",
        bg = "white")
 
 #### Figure 2: histogram of mixing intensity and F_mix ####
-fmix_label =  expression( F[mix] )  #"log10(Mixing depth) [cm]"
+fmix_label =  expression( F[mix] ~ " [-]" )  #"log10(Mixing depth) [cm]"
 g_label =  expression( log[10]* group("(", G,")")  ~  group("[","-","]") )  #"log10(Mixing depth) [cm]"
 
 plot_dimless_mixing_and_tavg = function(){
-  aa = par(no.readonly = TRUE)
   pe_min_log = min(-log10(peclet_numbers))
   pe_max_log = max(-log10(peclet_numbers))
   pe_step = 1/3
-  tavg_lwd = 3
-  tavg_col = "black"
-  a = hist(-log10(df$Pe), plot = FALSE, breaks = seq(pe_min_log, pe_max_log, pe_step))
-  png("figs/dimless_mixing_and_tavg.png",
-      width = )
-  par(mar = c(5.1, 4.1, 4.1, 4.1))
-  plot(-log10(peclet_numbers), tavg_dimless, type = "l",
-       xlab = g_label,
-       ylab = fmix_label,
-       lwd = tavg_lwd,
-       col = tavg_col,
-       ylim = c(0, 1.1 * max(tavg_dimless)),
-       mar = c(5.1, 4.1, 4.1, 4.1))
-  par(new = TRUE)
+  h = hist(-log10(df$Pe),
+           plot = FALSE,
+           breaks = seq(pe_min_log, pe_max_log, pe_step))
   
-  plot(a, freq = FALSE, axes = FALSE,
-       xlab = "",
-       ylab = "",
-       main = "")
-  axis(4)
-  mtext("Frequency", side = 4, line = 2.8)
-  par(new = FALSE)
-  dev.off()
+  hist_df = data.frame(x = h$mids,
+                       den = h$density)
+  
+  line_df = data.frame(x = -log10(peclet_numbers),
+                       y = tavg_dimless)
+  scale_fact = max(line_df$y)/ max(hist_df$den)
+  
+  p = ggplot() +
+    geom_col(data = hist_df,
+             aes(x = x, y = den * scale_fact),
+             width = pe_step,
+             fill = "grey80",
+             color = "grey40") +
+    geom_line(data = line_df,
+              aes(x = x, y = y),
+              linewidth = 1,
+              color = "black") +
+    geom_segment(aes(
+      x = log10(G_threshold),
+      xend = log10(G_threshold),
+      y = 0,
+      yend = Inf),
+      linetype = "dashed") +
+    scale_y_continuous(
+      name = fmix_label,
+      sec.axis = sec_axis(
+        ~ ./ scale_fact,
+        name = "Frequency"
+      )
+    ) +
+    labs(x = g_label) +
+    annotate("text",
+             x = -1.5,
+             y = 1,
+             label = "Not saturated") +
+    annotate("text",
+             x = 3,
+             y = 1,
+             label = "Saturated")
+  return(p)
 }
-plot_dimless_mixing_and_tavg()
+ggsave(filename = "figs/dimless_mixing_and_tavg.png",
+       plot = plot_dimless_mixing_and_tavg(),
+       bg = "white")
+
+
+pe_min_log = min(-log10(peclet_numbers))
+pe_max_log = max(-log10(peclet_numbers))
+pe_step = 1/3
+h = hist(-log10(df$Pe),
+         plot = FALSE,
+         breaks = seq(pe_min_log, pe_max_log, pe_step))
+
+hist_df = data.frame(x = h$mids,
+                     den = h$density)
+
+line_df = data.frame(x = -log10(peclet_numbers),
+                     y = tavg_dimless)
+scale_fact = max(line_df$y)/ max(hist_df$den)
+
+ggplot() +
+  geom_col(data = hist_df,
+           aes(x = x, y = den * scale_fact),
+           width = pe_step,
+           fill = "grey80",
+           color = "grey40") +
+  geom_line(data = line_df,
+            aes(x = x, y = y),
+            linewidth = 1,
+            color = "black") +
+  geom_segment(aes(
+    x = log10(G_threshold),
+    xend = log10(G_threshold),
+    y = 0,
+    yend = Inf),
+    linetype = "dashed") +
+  scale_y_continuous(
+    name = fmix_label,
+    sec.axis = sec_axis(
+      ~ ./ scale_fact,
+      name = "Frequency"
+    )
+  ) +
+  labs(x = g_label) +
+  annotate("text",
+           x = -1.5,
+           y = 1,
+           label = "Not saturated") +
+  annotate("text",
+           x = 3,
+           y = 1,
+           label = "Saturated")
+
 
 #### Figure 3: GLM plot ####
 sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
@@ -443,7 +521,22 @@ plot_sml_overview_fig = function(){
   p_fmix = ggplot(df, aes(x = F_mix)) + 
     geom_histogram(bins = 30) +
     xlab(expression(F[mix] * " [-]")) +
-    ylab("Count")
+    ylab("Count") +
+    geom_vline(xintercept = F_mix_threshold,
+               linetype = "dashed") +
+    annotate("text",
+             x = 0.5,
+             y = 90,
+             hjust = 0.5,
+             vjust = 0.5,
+      label = "Not\nsaturated") +
+    annotate("text",
+             x = 1.03,
+             y = 90,
+             angle = 90,
+             hjust = 0.5,
+             vjust = 0.5,
+             label = "Saturated")
   
   p = ggpubr::ggarrange(p_s, p_m, p_l, p_fmix,
                           labels = LETTERS[1:4],
@@ -508,7 +601,7 @@ ggsave(filename = "figs/coefficient_plots.png",
        plot = make_coeff_plots(),
        bg = "white")
 
-#### Plot dimensionless ADM ####
+#### Plot dimensionless ADD ####
 plot_dimless_add = function(){
   d_select = 1.0
   a_select = 2.8
