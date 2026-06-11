@@ -84,6 +84,8 @@ results["1st quartile log10 G"] = round(quantile(log10(df$G), p = 0.25), round_r
 results["lower bound HDR log10 G"] = round(quantile(log10(df$G), p = 0.025), round_res)
 results["upper bound HDR log10 G"] = round(quantile(log10(df$G), p = 1 - 0.025), round_res)
 results["median F_mix"] = round(median(df$F_mix), round_res)
+results["prop of saturated SMLs"] = c(sum(df$G > G_threshold) / length(df$id)) |>
+  (\(x) x * 100)() |> signif(digits = 3)
 
 F_mix_threshold = 0.9 * max(tavg_dimless)
 ff = function(x) approx(x = -log10(peclet_numbers), y = tavg_dimless - F_mix_threshold, xout = x)$y
@@ -330,12 +332,12 @@ ggplot() +
 
 
 #### Figure 3: GLM plot ####
-sedr_label = expression( log[10]*"("*Sed*"."*~rate*")"*  ~  group("[",cm/a,"]") )
+sedr_label = expression( log[10] * "(" * "Sed. acc." * ")" ~ group("[", cm/a, "]") )
 mix_label =  expression( log[10]* group("(", Biodiffusion*"",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
-mix_depth_label =  expression( log[10]* group("(", Mixing~Depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
+mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
 tavg_label =  expression( log[10]* group("(", Time-averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
-disorder_label = expression( log[10]* group("(", Stratigraphic~Disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
-wd_label =  expression( log[10]* group("(", Water~Depth,")")  ~  group("[",m,"]") )  #"log10(Mixing depth) [cm]"
+disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
+wd_label =  expression( log[10]* group("(", Water~depth,")")  ~  group("[",m,"]") )  #"log10(Mixing depth) [cm]"
 
 tavg_y_axis_lims = range(log10(c(df$tavg* 1.3, df$tavg * 0.8)))
 disorder_y_axis_lims = range(log10(c(1.1 * df$disorder, 0.9 * df$disorder)))
@@ -350,7 +352,7 @@ plot_glm_summary_fig = function(){
   ## time averaging
   rsq = rsq_part_tavg
   # sed rate
-  vv = paste(": ", round(rsq$partial.rsq[2], 3))
+  vv = paste(": ", round(rsq$partial.rsq[1], 3))
   annot = as.expression(bquote(partial ~ R^2* .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["s1"], 4))
   tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
@@ -365,7 +367,7 @@ plot_glm_summary_fig = function(){
   tavg_glm_plot_s
   
   # biodiffusion
-  vv = paste(": ", round(rsq$partial.rsq[1], 3))
+  vv = paste(": ", round(rsq$partial.rsq[2], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["m1"], 3))
   tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
@@ -395,7 +397,7 @@ plot_glm_summary_fig = function(){
   ## disorder
   rsq = rsq_part_disorder
   # sedimentation rate
-  vv = paste(": ", round(rsq$partial.rsq[2], 3))
+  vv = paste(": ", round(rsq$partial.rsq[1], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["s1"], 3))
   disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
@@ -409,7 +411,7 @@ plot_glm_summary_fig = function(){
     annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
   
   # biodiffusion
-  vv = paste(": ", round(rsq$partial.rsq[1], 3))
+  vv = paste(": ", round(rsq$partial.rsq[2], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["m1"], 3))
   disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
