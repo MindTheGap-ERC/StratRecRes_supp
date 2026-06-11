@@ -4,18 +4,21 @@
 "3","3rd quartile log10 G",1.325
 "4","lower bound HDR log10 G",-0.591
 "5","upper bound HDR log10 G",2.165
-"6","median F_mix",0.898
-"7","partial R2 disorder D_b",0.569
-"8","partial R2 disorder S",0.386
-"9","partial R2 disorder L",0.981
-"10","coeff disorder D_b",0.063
-"11","coeff disorder S",-0.057
-"12","coeff disorder L",0.931
-"13","partial R2 tavg D_b",0.569
-"14","partial R2 tavg S",0.995
-"15","partial R2 tavg L",0.981
-"16","coeff tavg D_b",0.063
-"17","coeff tavg S",-1.057
-"18","coeff tavg L",0.931
-"19","IQR 110 cm depth Po4",49
-"20","deepest C. gibba shell younger than 25 years in Po4",155
+"6","median F_mix",1.078
+"7","prop of saturated SMLs",79.1
+"8","F_mix saturation threshold",0.989
+"9","G saturation threshold",1.56
+"10","partial R2 disorder D_b",0.386
+"11","partial R2 disorder S",0.569
+"12","partial R2 disorder L",0.981
+"13","coeff disorder D_b",-0.057
+"14","coeff disorder S",0.063
+"15","coeff disorder L",0.931
+"16","partial R2 tavg D_b",0.995
+"17","partial R2 tavg S",0.569
+"18","partial R2 tavg L",0.981
+"19","coeff tavg D_b",-1.057
+"20","coeff tavg S",0.063
+"21","coeff tavg L",0.931
+"22","IQR 110 cm depth Po4",49
+"23","deepest C. gibba shell younger than 25 years in Po4",155
