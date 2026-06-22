@@ -74,6 +74,11 @@ df$F_mix = approx(peclet_numbers, tavg_dimless, xout = df$Pe, rule = 2)$y
 #hist(df$disorder)
 
 #### Empirical results from SMLBase ####
+
+F_mix_threshold = 0.9 * max(tavg_dimless)
+ff = function(x) approx(x = -log10(peclet_numbers), y = tavg_dimless - F_mix_threshold, xout = x)$y
+G_threshold = 10^uniroot(ff, interval = c(-2,2))$root 
+
 results = c()
 round_res = 3
 signif_digits = 3
@@ -87,9 +92,7 @@ results["median F_mix"] = round(median(df$F_mix), round_res)
 results["prop of saturated SMLs"] = c(sum(df$G > G_threshold) / length(df$id)) |>
   (\(x) x * 100)() |> signif(digits = 3)
 
-F_mix_threshold = 0.9 * max(tavg_dimless)
-ff = function(x) approx(x = -log10(peclet_numbers), y = tavg_dimless - F_mix_threshold, xout = x)$y
-G_threshold = 10^uniroot(ff, interval = c(-2,2))$root 
+
 
 results["F_mix saturation threshold"] = F_mix_threshold |> signif(digits = signif_digits)
 results["G saturation threshold"] = G_threshold |> signif(digits = signif_digits)
@@ -518,7 +521,7 @@ plot_sml_overview_fig = function(){
   p_s =ggplot(df, aes(x = S)) +
     geom_histogram(bins = 30) +
     scale_x_log10() +
-    xlab("log10(Sedimentation Rate) [cm/a]") +
+    xlab("log10(Sediment Acc. Rate) [cm/a]") +
     ylab("Count")
   p_fmix = ggplot(df, aes(x = F_mix)) + 
     geom_histogram(bins = 30) +
