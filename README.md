@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20644847.svg)](https://doi.org/10.5281/zenodo.20644847)
 
-Code and supplementary data for "Sedimentation rates determine temporal resolution and disorder of the stratigraphic record".
+Code and supplementary data for "Sediment accumulation, rather than mixing, controls the temporal resolution of the sedimentological record".
 
 ## Authors
 
