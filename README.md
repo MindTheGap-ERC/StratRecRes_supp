@@ -52,7 +52,7 @@ This repository contains data from
 
 To cite this repository, please use
 
-* Hohmann, N. (2026). Supplementary Code for "Sediment accumulation controls the depositional resolution of the stratigraphic record" (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.20644847
+* Hohmann, N. (2026). Sediment accumulation, rather than mixing, controls the temporal resolution of the sedimentological record: Supplementary Code. Zenodo. https://doi.org/10.5281/zenodo.20644846
 
 ## Copyright
 
