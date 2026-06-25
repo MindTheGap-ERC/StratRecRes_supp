@@ -204,7 +204,12 @@ plot_adms = function(){
     ggtitle("Particle Distribution Core Po4") +
     xlab("Age [a]") +
     ylab("Depth [cm]") +
-    scale_color_viridis_c()
+    scale_color_viridis_c()  +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
   #p1
   u2 = u[ 1:depth_lim +1, 1:age_lim + 1]
   mydf = reshape2::melt(u2)
@@ -216,17 +221,25 @@ plot_adms = function(){
     scale_y_reverse(lim = c(depth_lim, 0)) +
     xlab("Age [a]") +
     ylab("Depth [cm]") +
-    ggtitle("Modelled Age-Depth Distribution") +
-    scale_color_viridis_c()
+    ggtitle("Modelled Distribution") +
+    scale_color_viridis_c()  +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
   p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"))
   return(p)
 
 }
-ggsave(filename = "figs/adms_po_and_modeled.png",
+ggsave(filename = "figs/adms_po_and_modeled.pdf",
        plot = plot_adms(),
-       bg = "white")
+       bg = "white",
+       width = 12.28,
+       height = 8,
+       units = "cm")
 
 #### Figure 2: histogram of mixing intensity and F_mix ####
 fmix_label =  expression( F[mix] ~ " [-]" )  #"log10(Mixing depth) [cm]"
@@ -274,16 +287,26 @@ plot_dimless_mixing_and_tavg = function(){
     annotate("text",
              x = -1.5,
              y = 1,
-             label = "Not saturated") +
+             label = "Not saturated",
+             size = 8/.pt) +
     annotate("text",
              x = 3,
              y = 1,
-             label = "Saturated")
+             label = "Saturated",
+             size = 8/.pt)  +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
   return(p)
 }
-ggsave(filename = "figs/dimless_mixing_and_tavg.png",
+ggsave(filename = "figs/dimless_mixing_and_tavg.pdf",
        plot = plot_dimless_mixing_and_tavg(),
-       bg = "white")
+       bg = "white",
+       width = 12.28,
+       height = 8,
+       units = "cm")
 
 
 pe_min_log = min(-log10(peclet_numbers))
@@ -449,7 +472,7 @@ plot_glm_summary_fig = function(){
 }
 
 
-ggsave("figs/glm_summary_fig.png", 
+ggsave("figs/glm_summary_fig.pdf", 
        plot = plot_glm_summary_fig(),
        width = two_col_width_cm,
        units = c("cm"),
@@ -475,11 +498,18 @@ plot_wd_vs_params = function(){
     annotate("text",
              y = 0.9 * max(yrange),
              x = mean(range(log10(df$wd))),
-             label = annot) +
+             label = annot,
+             size = 8/.pt) +
     annotate("text",
              x = mean(range(log10(df$wd))),
              y = 1 * max(yrange),
-             label = slope_annot)
+             label = slope_annot,
+             size = 8/.pt)  +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
   
   yrange = range(log10(df$disorder))
   vv = paste0(": ", disorder_r2)
@@ -491,19 +521,29 @@ plot_wd_vs_params = function(){
     annotate("text",
              y = 0.9 * max(yrange),
              x = mean(range(log10(df$wd))),
-             label = annot) +
+             label = annot,
+             size = 8/.pt) +
     annotate("text",
              x = mean(range(log10(df$wd))),
              y = 1 * max(yrange),
-             label = slope_annot)
+             label = slope_annot,
+             size = 8/.pt) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
   p = ggpubr::ggarrange(lm1, lm2, ncol = 2, nrow = 1,
                           labels = LETTERS[1:2])
   return(p)
 }
 
-ggsave(filename = "figs/water_depth_vs_params.png",
+ggsave(filename = "figs/water_depth_vs_params.pdf",
        plot = plot_wd_vs_params(),
-       bg = "white")
+       bg = "white",
+       width = 12.28,
+       height = 8,
+       unit = "cm")
 
 
 #### Figure: Overview of SML parameters ####
