@@ -66,10 +66,12 @@ df_p$logG = -log10(df_p$Pe)
 
 library(ggplot2)
 library(metR)
+levels = c(0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01)
 df_p |>
   ggplot(aes(x = L_dimless, y = logG, z = P)) +
-  geom_contour() +
-  geom_text_contour() +
+  geom_contour_filled(breaks = c(0.1, 0), fill = "tomato", alpha = 0.3) +
+  geom_contour(breaks = levels) +
+  geom_text_contour(breaks = levels, skip = 0) +
   labs(title = "Probability of age reversal\ndimless system",
        x = "sampling distance [prop. L]",
        y = "log10 G")
