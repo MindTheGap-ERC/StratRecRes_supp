@@ -230,14 +230,14 @@ plot_adms = function(){
     )
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
-  p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"))
+  p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("a", "b"))
   return(p)
 
 }
 ggsave(filename = "figs/adms_po_and_modeled.pdf",
        plot = plot_adms(),
        bg = "white",
-       width = 12.28,
+       width = 18,
        height = 8,
        units = "cm")
 
@@ -261,6 +261,10 @@ plot_dimless_mixing_and_tavg = function(){
   scale_fact = max(line_df$y)/ max(hist_df$den)
   
   p = ggplot() +
+    annotate("rect", xmin = -Inf, xmax = log10(G_threshold), ymin = -Inf, ymax = Inf,
+             fill = "goldenrod", alpha = 0.25) +
+    annotate("rect", xmin = log10(G_threshold), xmax = Inf, ymin = -Inf, ymax = Inf,
+             fill = "mediumpurple", alpha = 0.25) +
     geom_col(data = hist_df,
              aes(x = x, y = den * scale_fact),
              width = pe_step,
@@ -280,20 +284,23 @@ plot_dimless_mixing_and_tavg = function(){
       name = fmix_label,
       sec.axis = sec_axis(
         ~ ./ scale_fact,
-        name = "Frequency"
+        name = "Frequency of observations in SMLBase"
       )
     ) +
-    labs(x = g_label) +
+    labs(x = g_label,
+         title = "Dimensionless time-averaging / disorder") +
     annotate("text",
              x = -1.5,
              y = 1,
              label = "Not saturated",
-             size = 8/.pt) +
+             size = 8/.pt,
+             fontface = "bold") +
     annotate("text",
              x = 3,
              y = 1,
              label = "Saturated",
-             size = 8/.pt)  +
+             size = 8/.pt,
+             fontface = "bold")  +
     theme(
       plot.title = element_text(size = 10),
       axis.title.x = element_text(size = 8),
@@ -301,11 +308,72 @@ plot_dimless_mixing_and_tavg = function(){
     )
   return(p)
 }
+
+plot_rev_prob = function(){
+  depths = seq(0, 3, by = 0.02)
+  names = c("Pe", "P", "L_dimless")
+  df_p = data.frame(matrix(nrow = 0, ncol = length(names)))
+  
+  for (i in seq_along(peclet_numbers)){
+    fval = tavg_list[[i]]$den
+    pe = peclet_numbers[i]
+    
+    aa = cumul_int_trap(t_dimless, fval, normalize = TRUE)
+    den = c(0, diff(aa)/diff(t_dimless))
+    CDF = approxfun(x = t_dimless, y = aa, yleft = 0, yright = 1)
+    
+    PDF = approxfun(x = t_dimless, y = den, yleft = 0, yright = 0)
+    
+    comb_f = function(y){
+      comb_fun = function(x){PDF(x)* CDF(x-y)}
+      return(integrate(comb_fun, lower = - Inf, upper = Inf)[[1]])
+    }
+    
+    depths = seq(0, 3, by = 0.02)
+    df_p = rbind(df_p, data.frame("Pe" = rep(pe, length(depths)),
+                                  "P" = sapply(depths, comb_f),
+                                  "L_dimless" = depths))
+  }
+  
+  df_p$logG = -log10(df_p$Pe)
+  
+  library(ggplot2)
+  library(metR)
+  levels = c(0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01)
+  p = df_p |>
+    ggplot(aes(x = L_dimless, y = logG, z = P)) +
+    geom_contour_filled(breaks = c(0, 0.1), fill = "aquamarine", alpha = 0.3) +
+    geom_contour_filled(breaks = c(0.1, 0.5), fill = "tomato", alpha = 0.3) +
+    geom_contour(breaks = setdiff(levels, 0.1), colour = "grey30") +
+    geom_contour(breaks = 0.1, colour = "black", linewidth = 1.2) +   # highlighted contour
+    geom_text_contour(breaks = levels, skip = 0, stroke = 0.2, size = 8/.pt) +
+    annotate("text", x = 1.9, y = 2.5, label = "Low reversal risk",
+             colour = "black", fontface = "bold", size = 8/.pt) +
+    annotate("text", x = 1.3, y = 2.5, label = "High reversal risk",
+             colour = "black", fontface = "bold", size = 8/.pt) +
+    labs(title = "Probability of age reversals",
+         x = "Sampling distance [proportion SML depth]",
+         y = g_label) +
+    coord_flip() +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
+  return(p)
+}
+
+p = plot_rev_prob()
+
+p_comb = ggpubr::ggarrange(plot_dimless_mixing_and_tavg(), plot_rev_prob(),
+                           nrow = 1, ncol = 2,
+                           labels = c("a", "b"))
+
 ggsave(filename = "figs/dimless_mixing_and_tavg.pdf",
-       plot = plot_dimless_mixing_and_tavg(),
+       plot = p_comb,
        bg = "white",
-       width = 12.28,
-       height = 8,
+       width = 18,
+       height = 10,
        units = "cm")
 
 
@@ -673,48 +741,67 @@ plot_dimless_add = function(){
   p1 = ggplot(df, aes(x = Var1, y = Var2, z = z)) +
     geom_contour_filled(breaks = sort(seq(0,1.1, by = 0.1))) +
     geom_contour(aes(z = z), color = "black", linewidth = 0.4,
-                 breaks = sort(seq(0,1.1, by = 0.1))) +
+                 breaks = sort(seq(0,1.1, by = 0.2))) +
     labs(x = "Age [-]",
          y = "Depth [-]",
-         title = "") +
+         title = "Age-depth distribution") +
     annotate("segment",
              x = min(a), xend = max(a),
              y = d_select, yend = d_select,
-             linewidth =transect_width,
+             linewidth =transect_width/.pt,
              color = fixed_depth_color) +  
     annotate("segment",
              x = a_select, xend = a_select,
              y = min(d), yend = max(d),
-             linewidth = transect_width,
+             linewidth = transect_width/.pt,
              color = fixed_age_color) +
     coord_cartesian(clip = "on") +
     scale_y_reverse() +
-    theme(legend.position = "none")
+    theme(legend.position = "none",
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      axis.text = element_text(size = 7)
+    )
   
   
   df1 = data.frame(d = d, den_vals =  mapply(f, a_select, d))
   p2 = df1 |> ggplot(aes(x =  d, y = den_vals)) +
     geom_line(color = fixed_age_color,
-              linewidth = transect_width) +
+              linewidth = transect_width/.pt) +
     geom_vline(xintercept = d_select,
                linetype = "dashed",
                color = fixed_depth_color) +
+    scale_y_continuous(n.breaks = 3) + 
     coord_flip() +
     scale_x_reverse() +
     labs(x = "Depth [-]",
-         y = expression("Density " ~ f[dis]),
-         title = "")
+         y = "Density",
+         title = expression("Position " ~ f[dis])) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      axis.text = element_text(size = 7)
+    )
   
   df2 = data.frame(a = a, den_vals = mapply(f, a, d_select))
   p3 = df2 |> ggplot(aes(x = a, y = den_vals)) +
     geom_line(color = fixed_depth_color,
-              linewidth = transect_width) +
+              linewidth = transect_width/.pt) +
     geom_vline(xintercept = a_select,
                linetype = "dashed",
                color = fixed_age_color) +
     labs(x = "Age [-]",
-         y = expression("Density " ~ f[tavg]),
-         title = "")
+         y = "Density",
+         title = expression("Age " ~ f[tavg])) + 
+    scale_y_continuous(n.breaks = 3) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      axis.text = element_text(size = 7)
+    )
   
   p4 = NULL
   
@@ -723,16 +810,17 @@ plot_dimless_add = function(){
                         ncol = 2,
                         widths = c(2,1),
                         heights = c(2,1),
-                        labels = LETTERS[1:3])
+                        labels = c("a", "b", "b"))
   return(p)
 }
 
 
 
-ggsave(filename = "figs/dimless_add.png",
+ggsave(filename = "figs/dimless_add.pdf",
        plot = plot_dimless_add(),
-       height = 7,
-       width = 7,
+       height = 8.5,
+       width = 8.5,
+       units = "cm",
        bg = "white")
 
 

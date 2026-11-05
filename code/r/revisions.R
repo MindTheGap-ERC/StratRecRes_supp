@@ -69,14 +69,21 @@ library(metR)
 levels = c(0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01)
 df_p |>
   ggplot(aes(x = L_dimless, y = logG, z = P)) +
-  geom_contour_filled(breaks = c(0.1, 0), fill = "tomato", alpha = 0.3) +
-  geom_contour(breaks = levels) +
-  geom_text_contour(breaks = levels, skip = 0) +
-  labs(title = "Probability of age reversal\ndimless system",
-       x = "sampling distance [prop. L]",
-       y = "log10 G")
+  geom_contour_filled(breaks = c(0, 0.1), fill = "aquamarine", alpha = 0.3) +
+  geom_contour_filled(breaks = c(0.1, 0.5), fill = "tomato", alpha = 0.3) +
+  geom_contour(breaks = setdiff(levels, 0.1), colour = "grey30") +
+  geom_contour(breaks = 0.1, colour = "black", linewidth = 1.2) +   # highlighted contour
+  geom_text_contour(breaks = levels, skip = 0, stroke = 0.2) +
+  annotate("text", x = 2.2, y = 3, label = "Low reversal risk",
+           colour = "black", fontface = "bold", size = 4) +
+  annotate("text", x = 0.8, y = 3, label = "High reversal risk",
+           colour = "black", fontface = "bold", size = 4) +
+  labs(title = "Probability of age reversal",
+       x = "Sampling distance [proportion SML depth]",
+       y = "log10 G") +
+  coord_flip()
 
-# find sampling distance where prob of reversal is below 0.05
+# find sampling distance where prob of reversal is below 0.1
 lim = c()
 for (i in seq_along(peclet_numbers)){
   fval = tavg_list[[i]]$den
@@ -90,7 +97,7 @@ for (i in seq_along(peclet_numbers)){
   
   comb_f = function(y){
     comb_fun = function(x){PDF(x)* CDF(x-y)}
-    return(integrate(comb_fun, lower = - Inf, upper = Inf)[[1]] - 0.05)
+    return(integrate(comb_fun, lower = - Inf, upper = Inf)[[1]] - 0.1)
   }
   lim = c(lim, uniroot(comb_f, lower = 0, upper = 3)$root)
 
@@ -105,5 +112,10 @@ df$safe_sampling_distance = lim_fun(log10(df$G)) * df$L
 df$safe_sampling_distance |> hist()
 
 plot(df$safe_sampling_distance, df$wd)
-ttt = lm(df$safe_sampling_distance ~ df$wd)
+wd = df$wd
+wd1 = log10(df$wd)
+ssd = df$safe_sampling_distance
+ttt = lm(ssd ~ wd1)
 summary(ttt)
+oo = visreg::visreg(ttt)
+typeof(oo)
