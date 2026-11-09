@@ -78,6 +78,42 @@ df$F_mix = approx(peclet_numbers, tavg_dimless, xout = df$Pe, rule = 2)$y
 F_mix_threshold = 0.9 * max(tavg_dimless)
 ff = function(x) approx(x = -log10(peclet_numbers), y = tavg_dimless - F_mix_threshold, xout = x)$y
 G_threshold = 10^uniroot(ff, interval = c(-2,2))$root 
+# determine which locations are (not) saturated
+df$saturated = df$G > G_threshold
+df$saturated[df$saturated] = "Saturated"
+df$saturated[df$saturated == "FALSE"] = "Not saturated"
+
+## Determine minimum safe sampling distance
+
+get_min_safe_sampling_distance = function(){
+  lim = c()
+  for (i in seq_along(peclet_numbers)){
+    fval = tavg_list[[i]]$den
+    pe = peclet_numbers[i]
+    
+    aa = cumul_int_trap(t_dimless, fval, normalize = TRUE)
+    den = c(0, diff(aa)/diff(t_dimless))
+    CDF = approxfun(x = t_dimless, y = aa, yleft = 0, yright = 1)
+    
+    PDF = approxfun(x = t_dimless, y = den, yleft = 0, yright = 0)
+    
+    comb_f = function(y){
+      comb_fun = function(x){PDF(x)* CDF(x-y)}
+      return(integrate(comb_fun, lower = - Inf, upper = Inf)[[1]] - 0.1)
+    }
+    lim = c(lim, uniroot(comb_f, lower = 0, upper = 3)$root)
+    
+  }
+  plot(-log10(peclet_numbers), lim, type = "l",
+       main = "Distance to ensure orderedness",
+       xlab = "log10 G",
+       ylab = "Proportion of mixing depth")
+  
+  lim_fun = approxfun(-log10(peclet_numbers), lim)
+  safe_sampling_distance = lim_fun(log10(df$G)) * df$L
+  return(safe_sampling_distance)
+}
+df$safe_sampling_distance = get_min_safe_sampling_distance()
 
 results = c()
 round_res = 3
@@ -430,7 +466,7 @@ sedr_label = expression( log[10] * "(" * "Sed. acc." * ")" ~ group("[", cm/a, "]
 mix_label =  expression( log[10]* group("(", Biodiffusion*"",")")  ~  group("[",cm^2/a,"]") ) #"log10(Mixing int.) [cm^2/a]"
 mix_depth_label =  expression( log[10]* group("(", Mixing~depth,")")  ~  group("[",cm,"]") )  #"log10(Mixing depth) [cm]"
 tavg_label =  expression( log[10]* group("(", Time-averaging,")")  ~  group("[",a,"]") ) # "log10(Time averaging) [a]"
-disorder_label = expression( log[10]* group("(", Stratigraphic~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
+disorder_label = expression( log[10]* group("(", Strat.~disorder,")")  ~  group("[",cm,"]") )  #"log10(Stratigraphic disorder) [cm]"
 wd_label =  expression( log[10]* group("(", Water~depth,")")  ~  group("[",m,"]") )  #"log10(Mixing depth) [cm]"
 
 tavg_y_axis_lims = range(log10(c(df$tavg* 1.3, df$tavg * 0.8)))
@@ -449,8 +485,23 @@ plot_glm_summary_fig = function(){
   vv = paste(": ", round(rsq$partial.rsq[1], 3))
   annot = as.expression(bquote(partial ~ R^2* .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["s1"], 4))
-  tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
-                                   gg = TRUE) +
+  v = visreg::visreg(tavg_glm, xvar = "s1", gg = TRUE, plot = FALSE)
+  
+  
+  res <- v$res
+  res$group <- df$saturated   # see the NA note below
+  
+  tavg_glm_plot_s = ggplot() +
+    geom_ribbon(data = v$fit, aes(x = s1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = s1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = s1, y = visreg_res, colour = group, shape = group)) +
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")) +
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16)) + # filled circle
     xlab(sedr_label) +
     ylab(tavg_label) +
     ylim(tavg_y_axis_lims) +
@@ -464,103 +515,196 @@ plot_glm_summary_fig = function(){
   vv = paste(": ", round(rsq$partial.rsq[2], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["m1"], 3))
-  tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
-                                   gg = TRUE) +
+  v = visreg::visreg(tavg_glm, xvar = "m1", plot = FALSE)
+  
+  res <- v$res
+  res$group <- df$saturated
+  
+  tavg_glm_plot_m <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = m1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = m1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = m1, y = visreg_res, colour = group, shape = group)) +
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")) +
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16)) + # filled circle
     xlab(mix_label) +
-    ylab(tavg_label)  + 
+    ylab(tavg_label) +
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
-  
+  tavg_glm_plot_m
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["l1"], 3))
-  tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
-                                  gg = TRUE) +
+  v = visreg::visreg(tavg_glm, xvar = "l1", plot = FALSE)
+  
+  res <- v$res
+  res$group <- df$saturated
+  
+  tavg_glm_plot_l <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = l1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = l1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = l1, y = visreg_res, colour = group, shape = group)) +
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")) +
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16)) + # filled circle
     xlab(mix_depth_label) +
-    ylab(tavg_label)  + 
+    ylab(tavg_label) +
     ylim(tavg_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
+  tavg_glm_plot_l
+  
+  ## shared point styling
+  sat_scales <- list(
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")),
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16))   # filled circle
+  )
   
   ## disorder
   rsq = rsq_part_disorder
+  
   # sedimentation rate
   vv = paste(": ", round(rsq$partial.rsq[1], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["s1"], 3))
-  disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
-                                       gg = TRUE) +
+  v = visreg::visreg(disorder_glm, xvar = "s1", plot = FALSE)
+  res <- v$res
+  res$group <- df$saturated
+  
+  disorder_glm_plot_s <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = s1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = s1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = s1, y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
     xlab(sedr_label) +
-    ylab(disorder_label)  +
+    ylab(disorder_label) +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
-  
+  disorder_glm_plot_s
   # biodiffusion
   vv = paste(": ", round(rsq$partial.rsq[2], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["m1"], 3))
-  disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
-                                       gg = TRUE) +
+  v = visreg::visreg(disorder_glm, xvar = "m1", plot = FALSE)
+  res <- v$res
+  res$group <- df$saturated
+  
+  disorder_glm_plot_m <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = m1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = m1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = m1, y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
     xlab(mix_label) +
-    ylab(disorder_label)  +
+    ylab(disorder_label) +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
-  
+  disorder_glm_plot_m
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
   annot = as.expression(bquote(partial ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["l1"], 3))
-  disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
-                                      gg = TRUE) +
+  v = visreg::visreg(disorder_glm, xvar = "l1", plot = FALSE)
+  res <- v$res
+  res$group <- df$saturated
+  
+  disorder_glm_plot_l <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = l1, ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = l1, y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = l1, y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
     xlab(mix_depth_label) +
-    ylab(disorder_label)  +
+    ylab(disorder_label) +
     ylim(disorder_y_axis_lims) +
     theme(axis.title.x = element_text(size = x_axis_text_size_pts),
           axis.title.y = element_text(size = y_axis_text_size_pts)) +
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
     annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
-  
+  disorder_glm_plot_l
   figure = ggpubr::ggarrange(tavg_glm_plot_s,  tavg_glm_plot_m, tavg_glm_plot_l,
                           disorder_glm_plot_s,  disorder_glm_plot_m, disorder_glm_plot_l,
                           nrow = 2, ncol = 3,
-                          labels = LETTERS[1:6])
+                          labels = LETTERS[1:6],
+                          common.legend = TRUE,
+                          legend = "bottom")
   return(figure)
 }
 
 
 ggsave("figs/glm_summary_fig.pdf", 
        plot = plot_glm_summary_fig(),
-       width = two_col_width_cm,
+       width = 19,
        units = c("cm"),
-       height = glm_plot_height_cm,
+       height = 12,
        bg = "white")
 
 #### figure: water depth vs tavg and disorder ####
+
+wd_log = log10(df$wd)
+mssd = df$safe_sampling_distance
+lm_mssd = lm(mssd ~ wd_log)
+
+
 signif_dig = 3
 plot_wd_vs_params = function(){
   tavg_r2 = summary(lm_tavg_wd)$adj.r.squared |> signif(digits = signif_dig)
   tavg_slope = lm_tavg_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
   disorder_r2 = summary(lm_disorder_wd)$adj.r.squared |> signif(digits = signif_dig)
   disorder_slope = lm_disorder_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
+  mssd_r2 = summary(lm_mssd)$adj.r.squared |> signif(digits = signif_dig)
+  mssd_slope = lm_mssd$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
   
+  sat_scales <- list(
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")),
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16))   # filled circle
+  )
   
   yrange = range(log10(df$tavg))
   vv = paste0(": ", tavg_r2)
   annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", tavg_slope)
-  lm1 = visreg::visreg(lm_tavg_wd, gg = TRUE) +
+  
+  v = visreg::visreg(lm_tavg_wd, plot = FALSE)
+  xname <- v$meta$x            # name of the predictor, as used in v$fit / v$res
+  res <- v$res
+  res$group <- df$saturated
+  
+  lm1 <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
     xlab(wd_label) +
     ylab(tavg_label) +
     annotate("text",
@@ -572,20 +716,32 @@ plot_wd_vs_params = function(){
              x = mean(range(log10(df$wd))),
              y = 1 * max(yrange),
              label = slope_annot,
-             size = 8/.pt)  +
+             size = 8/.pt) +
     theme(
       plot.title = element_text(size = 10),
       axis.title.x = element_text(size = 8),
       axis.title.y = element_text(size = 8)
     )
+  lm1
   
   yrange = range(log10(df$disorder))
   vv = paste0(": ", disorder_r2)
   annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
   slope_annot = paste("Slope:", disorder_slope)
-  lm2 = visreg::visreg(lm_disorder_wd, gg = TRUE) +
+  
+  v = visreg::visreg(lm_disorder_wd, plot = FALSE)
+  xname <- v$meta$x
+  res <- v$res
+  res$group <- df$saturated
+  
+  lm2 <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
     xlab(wd_label) +
-    ylab(disorder_label)+
+    ylab(disorder_label) +
     annotate("text",
              y = 0.9 * max(yrange),
              x = mean(range(log10(df$wd))),
@@ -601,16 +757,72 @@ plot_wd_vs_params = function(){
       axis.title.x = element_text(size = 8),
       axis.title.y = element_text(size = 8)
     )
-  p = ggpubr::ggarrange(lm1, lm2, ncol = 2, nrow = 1,
-                          labels = LETTERS[1:2])
+  lm2
+  
+  yrange = range(df$safe_sampling_distance)
+  vv = paste0(": ", mssd_r2)
+  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+  slope_annot = paste("Slope:", mssd_slope)
+  
+  v = visreg::visreg(lm_mssd, plot = FALSE)
+  xname <- v$meta$x
+  res <- v$res
+  res$group <- df$saturated
+  
+  ylims <- range(c(res$visreg_res, v$fit$visreg_lwr, v$fit$visreg_upr,
+                   df$safe_sampling_distance), na.rm = TRUE)
+  
+  lm3 <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
+    xlab(wd_label) +
+    ylab("Safe sampling distance [cm]") +
+    coord_cartesian(ylim = ylims) +
+    annotate("text",
+             y = 0.9 * max(yrange),
+             x = mean(range(log10(df$wd))),
+             label = annot,
+             size = 8/.pt) +
+    annotate("text",
+             x = mean(range(log10(df$wd))),
+             y = 1 * max(yrange),
+             label = slope_annot,
+             size = 8/.pt) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
+  lm3
+  
+  
+  hist1 <- df |>
+    ggplot(aes(y = safe_sampling_distance)) +   # y instead of x + coord_flip()
+    geom_histogram(binwidth = 2.5) +
+    labs(y = "Safe sampling distance [cm]",
+         x = "Count") +
+    coord_cartesian(ylim = ylims) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8)
+    )
+  hist1
+  p = ggpubr::ggarrange(lm1, lm2, lm3, hist1, ncol = 2, nrow = 2,
+                          labels = LETTERS[1:4],
+                        common.legend = TRUE,
+                        legend = "bottom")
   return(p)
 }
 
 ggsave(filename = "figs/water_depth_vs_params.pdf",
        plot = plot_wd_vs_params(),
        bg = "white",
-       width = 12.28,
-       height = 8,
+       width = 19,
+       height = 15,
        unit = "cm")
 
 
@@ -632,6 +844,10 @@ plot_sml_overview_fig = function(){
     xlab("log10(Sediment Acc. Rate) [cm/a]") +
     ylab("Count")
   p_fmix = ggplot(df, aes(x = F_mix)) + 
+    annotate("rect", xmin = -Inf, xmax = F_mix_threshold, ymin = -Inf, ymax = Inf,
+             fill = "goldenrod", alpha = 0.25) +
+    annotate("rect", xmin = F_mix_threshold, xmax = Inf, ymin = -Inf, ymax = Inf,
+             fill = "mediumpurple", alpha = 0.25) +
     geom_histogram(bins = 30) +
     xlab(expression(F[mix] * " [-]")) +
     ylab("Count") +
@@ -642,7 +858,7 @@ plot_sml_overview_fig = function(){
              y = 90,
              hjust = 0.5,
              vjust = 0.5,
-      label = "Not\nsaturated") +
+             label = "Not\nsaturated") +
     annotate("text",
              x = 1.03,
              y = 90,
@@ -650,15 +866,19 @@ plot_sml_overview_fig = function(){
              hjust = 0.5,
              vjust = 0.5,
              label = "Saturated")
+  p_fmix
   
   p = ggpubr::ggarrange(p_s, p_m, p_l, p_fmix,
                           labels = LETTERS[1:4],
                           ncol = 2, nrow = 2)
   return(p)
 }
-ggsave(filename = "figs/sml_overview.png",
+ggsave(filename = "figs/sml_overview.pdf",
        plot = plot_sml_overview_fig(),
-       bg = "white")
+       bg = "white",
+       width = 19,
+       height = 18,
+       units = "cm")
 
 #### Coefficient plot ####
 
@@ -823,6 +1043,72 @@ ggsave(filename = "figs/dimless_add.pdf",
        units = "cm",
        bg = "white")
 
+## water depth vs sedimentation rate
+
+s_log = df$S |> log10()
+wd_log = df$wd |> log10()
+lm_wd = lm(s_log ~ wd_log)
+
+plot_wd_vs_s = function(){
+wd_r2 = summary(lm_wd)$adj.r.squared |> signif(digits = signif_dig)
+wd_slope = lm_wd$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
+
+sat_scales <- list(
+  scale_colour_manual(name = NULL,
+                      values = c("Not saturated" = "goldenrod",
+                                 "Saturated"     = "mediumpurple")),
+  scale_shape_manual(name = NULL,
+                     values = c("Not saturated" = 17,    # filled triangle
+                                "Saturated"     = 16))   # filled circle
+)
+yrange = range(s_log)
+vv = paste0(": ", wd_r2)
+annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+slope_annot = paste("Slope:", wd_slope)
+
+v = visreg::visreg(lm_wd, plot = FALSE)
+xname <- v$meta$x
+res <- v$res
+res$group <- df$saturated
+
+ylims <- range(c(res$visreg_res, v$fit$visreg_lwr, v$fit$visreg_upr,
+                 s_log), na.rm = TRUE)
+
+# annotation positions: below the data, with extra room added at the bottom
+ann_x    <- mean(range(v$fit[[xname]]))
+ann_step <- 0.08 * diff(ylims)
+ann_bot  <- ylims[1] - 0.05 * diff(ylims)
+
+plot_ylims <- c(ylims[1] - 0.22 * diff(ylims), ylims[2])
+
+p <- ggplot() +
+  geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
+              fill = "grey85") +
+  geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
+  geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
+  sat_scales +
+  xlab(wd_label) +
+  ylab(sedr_label) +
+  coord_cartesian(ylim = plot_ylims) +
+  annotate("text", x = ann_x, y = ann_bot,
+           label = slope_annot, size = 8/.pt) +
+  annotate("text", x = ann_x, y = ann_bot - ann_step,
+           label = annot, size = 8/.pt) +
+  theme(
+    plot.title = element_text(size = 10),
+    axis.title.x = element_text(size = 8),
+    axis.title.y = element_text(size = 8),
+    legend.position = "bottom",
+    legend.direction = "horizontal"
+  )
+return(p)
+}
+
+ggsave("figs/wd_vs_sed_acc.pdf",
+       plot = plot_wd_vs_s(),
+       width = 8.5,
+       height = 9,
+       units = "cm")
 
 #### Save results ####
 re.df = data.frame(description = names(results), values = unname(results))
