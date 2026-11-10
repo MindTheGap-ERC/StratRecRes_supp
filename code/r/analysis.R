@@ -3,6 +3,9 @@ library(ggplot2)
 library(dotwhisker)
 library(gapminder)
 
+#### Plotting constants
+ax_label_ssd = 
+
 #### Set seed ####
 set.seed(296573) # generated via random.org
 
@@ -82,7 +85,14 @@ G_threshold = 10^uniroot(ff, interval = c(-2,2))$root
 df$saturated = df$G > G_threshold
 df$saturated[df$saturated] = "Saturated"
 df$saturated[df$saturated == "FALSE"] = "Not saturated"
-
+df <- df |> mutate(sat = as.integer(saturated == "Saturated"))
+df = df |> mutate(S_log = log10(S))
+df = df |> mutate(M_log = log10(M))
+df = df |> mutate(L_log = log10(L))
+df = df |> mutate(wd_log = log10(wd))
+df = df |> mutate(tavg_log = log10(tavg))
+df = df |> mutate(disorder_log = log10(disorder))
+df = df |> mutate(ssd_log = log10(ssd))
 ## Determine minimum safe sampling distance
 
 get_min_safe_sampling_distance = function(){
@@ -113,7 +123,8 @@ get_min_safe_sampling_distance = function(){
   safe_sampling_distance = lim_fun(log10(df$G)) * df$L
   return(safe_sampling_distance)
 }
-df$safe_sampling_distance = get_min_safe_sampling_distance()
+df$ssd = get_min_safe_sampling_distance()
+df = df |> mutate(ssd_log = log10(ssd))
 
 results = c()
 round_res = 3
@@ -133,6 +144,11 @@ results["prop of saturated SMLs"] = c(sum(df$G > G_threshold) / length(df$id)) |
 results["F_mix saturation threshold"] = F_mix_threshold |> signif(digits = signif_digits)
 results["G saturation threshold"] = G_threshold |> signif(digits = signif_digits)
 #### GLMs ####
+
+p_from_glm = function(x){
+  d = drop1(x, test = "F")
+  return(setNames(d$`Pr(>F)`, rownames(d))[-1])   # drop the "<none>" row
+}
 m1 = log10(df$M)
 s1 = log10(df$S)
 l1 = log10(df$L)
@@ -141,9 +157,11 @@ di = log10(df$disorder)
 
 tavg_glm = glm(ta ~  s1 +  m1 +l1)
 disorder_glm = stats::glm(di ~ s1 +  m1 +l1)
+ssd_glm = glm(ssd_log ~ S_log + M_log + L_log, data = df)
 
 step(tavg_glm)
 step(disorder_glm)
+step(ssd_glm)
 
 # Write summary to csv file
 x = summary(tavg_glm)
@@ -156,19 +174,26 @@ coeff = as.data.frame(x$coefficients)
 coeff[,1:3] = round(coeff[,1:3], 3)
 write.csv(coeff, file = "data/res/disorder_glm_res.csv")
 
+x = summary(ssd_glm)
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/ssd_glm_res.csv")
+
 ## Check for multicolinearity
 dd = data.frame( s1, m1, l1)
 cor_mat = cor(dd)
 # check variance inflation factors
 vif_tavg = car::vif(tavg_glm)
 vif_disorder = car::vif(disorder_glm)
-if (any(vif_disorder> vif_threshold) | any(vif_tavg > vif_threshold)){ 
+vif_ssd = car::vif(ssd_glm)
+if (any(vif_disorder> vif_threshold) | any(vif_tavg > vif_threshold) | any(vif_ssd > vif_threshold)){ 
   stop("Multicolinearity detected")  
 }
 
 ## Partial R square
 rsq_part_disorder = rsq::rsq.partial(disorder_glm,adj=TRUE)
 rsq_part_tavg = rsq::rsq.partial(tavg_glm, adj = TRUE)
+rsq_part_ssd = rsq::rsq.partial(ssd_glm, adj = TRUE)
 
 ## Save results for Rsq and coefficients
 results[c("partial R2 disorder D_b", "partial R2 disorder S", "partial R2 disorder L")] = round(rsq_part_disorder$partial.rsq, round_res)
@@ -176,7 +201,7 @@ results[c("coeff disorder D_b", "coeff disorder S", "coeff disorder L")] = round
 results[c("partial R2 tavg D_b", "partial R2 tavg S", "partial R2 tavg L")] = round(rsq_part_tavg$partial.rsq, round_res)
 results[c("coeff tavg D_b", "coeff tavg S", "coeff tavg L")] = round(tavg_glm$coefficients[-1], round_res)
 
-#### Normalized regression ####
+#### Normalized GLM regression ####
 data = data.frame(tavg_st = scale(ta),
                   disorder_st = scale(di),
                   m_st = scale(m1),
@@ -185,15 +210,18 @@ data = data.frame(tavg_st = scale(ta),
 
 tavg_glm_std = glm(tavg_st ~ s_st + m_st  +  l_st, data = data)
 disorder_glm_std = glm(disorder_st ~ s_st + m_st  +  l_st, data = data)
+ssd_glm_std = glm(scale(log10(ssd)) ~ scale(S_log) + scale(M_log) + scale(L_log), data = df)
 
 vif_tavg_std = car::vif(tavg_glm_std)
 vif_disorder_std = car::vif(disorder_glm_std)
-if (any(vif_disorder_std> vif_threshold) | any(vif_tavg_std > vif_threshold)){ 
+vif_ssd_std = car::vif(disorder_glm_std)
+if (any(vif_disorder_std> vif_threshold) | any(vif_tavg_std > vif_threshold) | any(vif_ssd_std > vif_threshold)){ 
   stop("Multicolinearity detected")  
 }
 
 step(tavg_glm_std)
 step(disorder_glm_std)
+step(ssd_glm_std)
 
 # write summary to csv
 x = summary(tavg_glm_std)
@@ -206,16 +234,135 @@ coeff = as.data.frame(x$coefficients)
 coeff[,1:3] = round(coeff[,1:3], 3)
 write.csv(coeff, file = "data/res/disorder_glm_std_res.csv")
 
+x = summary(ssd_glm_std)
+coeff = as.data.frame(x$coefficients)
+coeff[,1:3] = round(coeff[,1:3], 3)
+write.csv(coeff, file = "data/res/ssd_glm_std_res.csv")
+
 rsq_part_disorder_std = rsq::rsq.partial(disorder_glm_std,adj=TRUE)
 rsq_part_tavg_std = rsq::rsq.partial(tavg_glm_std, adj = TRUE)
+rsq_part_ssd_std = rsq::rsq.partial(ssd_glm_std, adj = TRUE)
+
+#### LM water depth vs tavg, disorder and tavg ####
+lm_ssd_wd = lm(ssd_log ~ wd_log, data = df)
+lm_tavg_wd = lm(tavg_log ~ wd_log, data = df)
+lm_disorder_wd = lm(disorder_log ~ wd_log, data = df)
+
+rsq_adj_from_lm = function(x){
+  return(summary(x)$adj.r.squared)
+}
+
+p_from_lm = function(x){
+  f = summary(x)$fstatistic        # value, numdf, dendf
+  return(unname(pf(f["value"], f["numdf"], f["dendf"], lower.tail = FALSE)))
+}
+
+slope_from_lm = function(x){
+  return(summary(x)$coefficients[2,1])
+}
+
+rsq_adj_from_lm(lm_ssd_wd)
 
 
-#### LM water depth vs tavg and disorder ####
-logtavg = log10(df$tavg)
-wd_l = log10(df$wd)
-logdi = log10(df$disorder)
-lm_tavg_wd = lm( logtavg ~ wd_l)
-lm_disorder_wd = lm(logdi ~ wd_l)
+#### Logistic regression saturation vs. water depth ####
+fit_wd <- glm(sat ~ wd_log, family = binomial, data = df)
+
+summary(fit)                              # slope b, SE, Wald z and p
+exp(coef(fit)["wd_log"])                  # odds ratio per tenfold increase in water depth
+exp(confint(fit)["wd_log", ])             # 95% CI (profile likelihood)
+anova(fit, test = "Chisq")                # likelihood-ratio test vs. intercept-only model
+predict(fit, data.frame(wd_log = log10(c(100, 4000))), type = "response")  # P(sat) at two depths
+
+#### S, M, L, SSD vs saturation ####
+wilcox_stats = function(var, data = df){
+  x   = data[[var]]
+  res = wilcox.test(x ~ data$sat)
+  med = tapply(x, data$sat, median) |> signif(digits = signif_dig)
+  iqr = tapply(x, data$sat, IQR) |> signif(digits = signif_dig)
+  p   = res$p.value |> signif(digits = signif_dig)
+  A   = unname(res$statistic) / (sum(data$sat) * sum(!data$sat))
+  list(var = var, W = unname(res$statistic), med = med, iqr = iqr, p = p, A = A |> signif(digits = signif_dig))
+}
+w_stats_s = wilcox_stats("S")
+w_stats_m = wilcox_stats("M")
+w_stats_l = wilcox_stats("L")
+w_stats_ssd = wilcox_stats("ssd")
+
+
+
+sat_cols = c("Not saturated" = "goldenrod", "Saturated" = "mediumpurple")
+
+title_size_pts = 10
+
+#### Plot: saturation state vs. S, M, L, and SSD ####
+saturation_state_plot = function(){
+  sat_boxplot = function(yvar, ylab, title){
+  ggplot(df, aes(x = saturated, y = .data[[yvar]], fill = saturated)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_jitter(aes(colour = saturated, shape = saturated),
+                width = 0.15, height = 0, size = 0.8, alpha = 0.9) +
+    scale_fill_manual(values = sat_cols, guide = "none") +
+    scale_colour_manual(values = sat_cols, guide = "none") +
+    scale_shape_manual(values = c("Not saturated" = 17, "Saturated" = 16), guide = "none") +
+    labs(x = NULL, y = ylab, title = title) +
+    theme_bw() +
+    theme(plot.title   = element_text(size = title_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts),
+          axis.text.x  = element_text(size = x_axis_text_size_pts))
+}
+
+ssd_log_label = expression( log[10]* group("(", Safe~sampling~dis.,")") ~ group("[",cm,"]") )
+df$ssd_log = log10(df$safe_sampling_distance)
+
+p1 = sat_boxplot("S_log",   sedr_label,      "Sed. acc. rate")
+p2 = sat_boxplot("M_log",   mix_label,       "Biodiffusion")
+p3 = sat_boxplot("L_log",   mix_depth_label, "Mixing depth")
+p4 = sat_boxplot("ssd_log", ssd_log_label,   "Safe sampling dist.")
+
+# colour the logistic-regression points the same way
+p0 = ggplot() +
+  geom_jitter(data = df, aes(wd, sat, colour = saturated, shape = saturated),
+              height = 0.03, width = 0, alpha = 0.8, size = 1) +
+  geom_ribbon(data = nd, aes(wd, ymin = lwr, ymax = upr), alpha = 0.2) +
+  geom_line(data = nd, aes(wd, p), linewidth = 1) +
+  scale_colour_manual(values = sat_cols, name = NULL) +
+  scale_shape_manual(values = c("Not saturated" = 17, "Saturated" = 16), name = NULL) +
+  scale_x_log10() +
+  scale_y_continuous(breaks = c(0, 0.5, 1)) +
+  labs(x = "Water depth [m]", y = "P(Saturated)",
+       title = "Probability of mixing saturation vs. water depth") +
+  theme_bw() +
+  theme(plot.title = element_text(size = title_size_pts)) +
+  annotate("text", x = min(df$wd), y = 0.25, label = annot1, hjust = 0, size = annot_size_pts / .pt) +
+  annotate("text", x = min(df$wd), y = 0.15, label = annot2, hjust = 0, size = annot_size_pts / .pt)
+
+library(patchwork)
+fig = p0 / (p1 | p2 | p3 | p4) +
+  plot_layout(guides = "collect",
+              heights = c(1.2, 1)) +
+  plot_annotation(tag_levels = "a") &
+  theme(legend.position = "bottom")
+  return(fig)
+}
+
+ggsave(filename = "figs/saturation_state.pdf",
+       plot = saturation_state_plot(),
+       width = 19,
+       height = 12,
+       units = "cm",
+       device = cairo_pdf)
+#### ####
+
+
+
+#### Safe sampling distance
+glm_ssd = glm(log10(safe_sampling_distance) ~ S_log + L_log + M_log, data = df)
+summary(glm_ssd)
+visreg(glm_ssd)
+
+lm_ssd = lm(safe_sampling_distance ~ wd_log, data = df)
+visreg(lm_ssd)
+
 
 #### Figure 1: ADD in Po4 core ####
 # plotting limits
@@ -388,7 +535,7 @@ plot_rev_prob = function(){
     annotate("text", x = 1.3, y = 2.5, label = "High reversal risk",
              colour = "black", fontface = "bold", size = 8/.pt) +
     labs(title = "Probability of age reversals",
-         x = "Sampling distance [proportion SML depth]",
+         x = "Safe sampling distance [prop. SML depth]",
          y = g_label) +
     coord_flip() +
     theme(
@@ -459,7 +606,6 @@ ggplot() +
            x = 3,
            y = 1,
            label = "Saturated")
-
 
 #### Figure 3: GLM plot ####
 sedr_label = expression( log[10] * "(" * "Sed. acc." * ")" ~ group("[", cm/a, "]") )
@@ -664,21 +810,41 @@ ggsave("figs/glm_summary_fig.pdf",
        height = 12,
        bg = "white")
 
-#### figure: water depth vs tavg and disorder ####
+#### wd vs tavg, disorder, and ssd (plot ssd histogram) ####
 
-wd_log = log10(df$wd)
-mssd = df$safe_sampling_distance
-lm_mssd = lm(mssd ~ wd_log)
+df$ssd_log = log10(df$safe_sampling_distance)
 
+aa = summary(lm_ssd_log)
+aa$coefficients |> signif(digits = signif_dig)
+
+ssd_log_label = expression( log[10]* group("(", Safe~sampling~dist.,")") ~ group("[",cm,"]") )
+
+# x axis: data stay on log10 scale, ticks are labelled in metres
+wd_lin_label = "Water depth [m]"
+wd_x_scale = list(
+  scale_x_continuous(breaks = log10(c(10, 100, 1000, 10000)),
+                     labels = c("10", "100", "1000", "10000"),
+                     minor_breaks = log10(as.vector(outer(1:9, 10^(1:4))))),
+  annotation_logticks(sides = "b", outside = FALSE,
+                      short = unit(0.05, "cm"), mid = unit(0.1, "cm"), long = unit(0.15, "cm"))
+)
 
 signif_dig = 3
+# Annotation "adj. R^2: x, p = y" for an lm, with both values to `digits` significant digits.
+# The p-value is the overall F-test of the model (= slope p-value for one predictor).
+r2_p_annot = function(model, digits = signif_dig){
+  s  = summary(model)
+  f  = s$fstatistic
+  r2 = signif(s$adj.r.squared, digits)
+  p  = pf(f["value"], f["numdf"], f["dendf"], lower.tail = FALSE) |> unname()
+  p_txt = format(signif(p, digits), digits = digits)
+  as.expression(bquote(adj. ~ R^2 * ": " * .(r2) * "," ~ italic(p) == .(p_txt)))
+}
+
 plot_wd_vs_params = function(){
-  tavg_r2 = summary(lm_tavg_wd)$adj.r.squared |> signif(digits = signif_dig)
   tavg_slope = lm_tavg_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
-  disorder_r2 = summary(lm_disorder_wd)$adj.r.squared |> signif(digits = signif_dig)
   disorder_slope = lm_disorder_wd$coefficients["wd_l"] |> unname() |> signif(digits = signif_dig)
-  mssd_r2 = summary(lm_mssd)$adj.r.squared |> signif(digits = signif_dig)
-  mssd_slope = lm_mssd$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
+  ssd_slope = lm_ssd_log$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
   
   sat_scales <- list(
     scale_colour_manual(name = NULL,
@@ -690,8 +856,7 @@ plot_wd_vs_params = function(){
   )
   
   yrange = range(log10(df$tavg))
-  vv = paste0(": ", tavg_r2)
-  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+  annot = r2_p_annot(lm_tavg_wd)
   slope_annot = paste("Slope:", tavg_slope)
   
   v = visreg::visreg(lm_tavg_wd, plot = FALSE)
@@ -705,7 +870,8 @@ plot_wd_vs_params = function(){
     geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
     geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
     sat_scales +
-    xlab(wd_label) +
+    xlab(wd_lin_label) +
+    wd_x_scale +
     ylab(tavg_label) +
     annotate("text",
              y = 0.9 * max(yrange),
@@ -725,8 +891,7 @@ plot_wd_vs_params = function(){
   lm1
   
   yrange = range(log10(df$disorder))
-  vv = paste0(": ", disorder_r2)
-  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
+  annot = r2_p_annot(lm_disorder_wd)
   slope_annot = paste("Slope:", disorder_slope)
   
   v = visreg::visreg(lm_disorder_wd, plot = FALSE)
@@ -740,7 +905,8 @@ plot_wd_vs_params = function(){
     geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
     geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
     sat_scales +
-    xlab(wd_label) +
+    xlab(wd_lin_label) +
+    wd_x_scale +
     ylab(disorder_label) +
     annotate("text",
              y = 0.9 * max(yrange),
@@ -759,18 +925,22 @@ plot_wd_vs_params = function(){
     )
   lm2
   
-  yrange = range(df$safe_sampling_distance)
-  vv = paste0(": ", mssd_r2)
-  annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
-  slope_annot = paste("Slope:", mssd_slope)
+  ## safe sampling distance, log10 scale
+  annot = r2_p_annot(lm_ssd_log)
+  slope_annot = paste("Slope:", ssd_slope)
   
-  v = visreg::visreg(lm_mssd, plot = FALSE)
+  v = visreg::visreg(lm_ssd_log, plot = FALSE)
   xname <- v$meta$x
   res <- v$res
   res$group <- df$saturated
   
+  # shared y-limits for the regression panel and the histogram
   ylims <- range(c(res$visreg_res, v$fit$visreg_lwr, v$fit$visreg_upr,
-                   df$safe_sampling_distance), na.rm = TRUE)
+                   df$ssd_log), na.rm = TRUE)
+  # annotation positions as fractions of the axis range
+  # (multiplying a log value, e.g. 0.9 * max, is unreliable when values can be <= 0)
+  y_slope = ylims[2]
+  y_r2    = ylims[2] - 0.08 * diff(ylims)
   
   lm3 <- ggplot() +
     geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
@@ -778,17 +948,18 @@ plot_wd_vs_params = function(){
     geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
     geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
     sat_scales +
-    xlab(wd_label) +
-    ylab("Safe sampling distance [cm]") +
+    xlab(wd_lin_label) +
+    wd_x_scale +
+    ylab(ssd_log_label) +
     coord_cartesian(ylim = ylims) +
     annotate("text",
-             y = 0.9 * max(yrange),
+             y = y_r2,
              x = mean(range(log10(df$wd))),
              label = annot,
              size = 8/.pt) +
     annotate("text",
              x = mean(range(log10(df$wd))),
-             y = 1 * max(yrange),
+             y = y_slope,
              label = slope_annot,
              size = 8/.pt) +
     theme(
@@ -798,13 +969,14 @@ plot_wd_vs_params = function(){
     )
   lm3
   
-  
   hist1 <- df |>
-    ggplot(aes(y = safe_sampling_distance)) +   # y instead of x + coord_flip()
-    geom_histogram(binwidth = 2.5) +
-    labs(y = "Safe sampling distance [cm]",
-         x = "Count") +
+    ggplot(aes(y = ssd_log)) +   # y instead of x + coord_flip()
+    geom_histogram(binwidth = 0.1) +
+    labs(y = ssd_log_label,
+         x = "Count in SMLBase") +
     coord_cartesian(ylim = ylims) +
+    geom_hline(yintercept = median(df$ssd_log),   # = log10 of the median SSD
+               linetype = "dashed") +
     theme(
       plot.title = element_text(size = 10),
       axis.title.x = element_text(size = 8),
@@ -812,7 +984,7 @@ plot_wd_vs_params = function(){
     )
   hist1
   p = ggpubr::ggarrange(lm1, lm2, lm3, hist1, ncol = 2, nrow = 2,
-                          labels = LETTERS[1:4],
+                        labels = LETTERS[1:4],
                         common.legend = TRUE,
                         legend = "bottom")
   return(p)
@@ -824,7 +996,6 @@ ggsave(filename = "figs/water_depth_vs_params.pdf",
        width = 19,
        height = 15,
        unit = "cm")
-
 
 #### Figure: Overview of SML parameters ####
 plot_sml_overview_fig = function(){
@@ -882,6 +1053,9 @@ ggsave(filename = "figs/sml_overview.pdf",
 
 #### Coefficient plot ####
 
+
+aa = summary(ssd_glm_std)
+aa$coefficients |> signif(digits = signif_dig)
 make_coeff_plots = function(){
   dot_args = list(size = 3)
   whisker_args = list(size = 1)
@@ -923,16 +1097,35 @@ make_coeff_plots = function(){
     scale_y_discrete(labels = y_axis_labels)+
     geom_vline(xintercept = 0, linetype = "dashed") +
     theme(axis.text.y = element_text(angle = 45))
-  p = ggpubr:: ggarrange(a1, a2, a3, a4,
+  a5 = dwplot(ssd_glm,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
+    ggtitle("Safe sampling distance") + 
+    labs(x = "Regression coefficient", y = "Independent variables") +
+    scale_y_discrete(labels = y_axis_labels)+
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
+  a6 = dwplot(ssd_glm_std,
+              dot_args = dot_args,
+              whisker_args = whisker_args) +
+    ggtitle("") +
+    labs(x = "Beta coefficient", y = "Independent variables") +
+    scale_y_discrete(labels = y_axis_labels)+
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme(axis.text.y = element_text(angle = 45))
+  
+  p = ggpubr:: ggarrange(a1, a2, a3, a4, a5, a6,
                          ncol = 2,
-                         nrow = 2,
-                         labels = LETTERS[1:4])
+                         nrow = 3,
+                         labels = letters[1:6])
   return(p)
 }
 
-ggsave(filename = "figs/coefficient_plots.png",
+ggsave(filename = "figs/coefficient_plots.pdf",
        plot = make_coeff_plots(),
-       bg = "white")
+       width = 19,
+       height = 21,
+       units = "cm")
 
 #### Plot dimensionless ADD ####
 plot_dimless_add = function(){
@@ -1045,64 +1238,88 @@ ggsave(filename = "figs/dimless_add.pdf",
 
 ## water depth vs sedimentation rate
 
-s_log = df$S |> log10()
-wd_log = df$wd |> log10()
-lm_wd = lm(s_log ~ wd_log)
+#### Sediment accumulation rate vs. water depth ####
+lm_wd = lm(S_log ~ wd_log, data = df)
+
+summary_lm_wd = summary(lm_wd)
+summary_lm_wd$coefficients |> signif(digits = signif_dig)
+summary_lm_wd$adj.r.squared |> signif(digits = signif_dig)
+f = summary_lm_wd$fstatistic          # named vector: value, numdf, dendf
+p_r2 = pf(f["value"], f["numdf"], f["dendf"], lower.tail = FALSE) |> unname()
+
+# x axis: data stay on log10 scale, ticks are labelled in metres
+wd_lin_label = "Water depth [m]"
+wd_x_scale = list(
+  scale_x_continuous(breaks = log10(c(10, 100, 1000, 10000)),
+                     labels = c("10", "100", "1000", "10000"),
+                     minor_breaks = log10(as.vector(outer(1:9, 10^(1:4))))),
+  annotation_logticks(sides = "b", outside = FALSE,
+                      short = unit(0.05, "cm"), mid = unit(0.1, "cm"), long = unit(0.15, "cm"))
+)
 
 plot_wd_vs_s = function(){
-wd_r2 = summary(lm_wd)$adj.r.squared |> signif(digits = signif_dig)
-wd_slope = lm_wd$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
-
-sat_scales <- list(
-  scale_colour_manual(name = NULL,
-                      values = c("Not saturated" = "goldenrod",
-                                 "Saturated"     = "mediumpurple")),
-  scale_shape_manual(name = NULL,
-                     values = c("Not saturated" = 17,    # filled triangle
-                                "Saturated"     = 16))   # filled circle
-)
-yrange = range(s_log)
-vv = paste0(": ", wd_r2)
-annot = as.expression(bquote(adj. ~ R^2*  .(vv)))
-slope_annot = paste("Slope:", wd_slope)
-
-v = visreg::visreg(lm_wd, plot = FALSE)
-xname <- v$meta$x
-res <- v$res
-res$group <- df$saturated
-
-ylims <- range(c(res$visreg_res, v$fit$visreg_lwr, v$fit$visreg_upr,
-                 s_log), na.rm = TRUE)
-
-# annotation positions: below the data, with extra room added at the bottom
-ann_x    <- mean(range(v$fit[[xname]]))
-ann_step <- 0.08 * diff(ylims)
-ann_bot  <- ylims[1] - 0.05 * diff(ylims)
-
-plot_ylims <- c(ylims[1] - 0.22 * diff(ylims), ylims[2])
-
-p <- ggplot() +
-  geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
-              fill = "grey85") +
-  geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
-  geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
-  sat_scales +
-  xlab(wd_label) +
-  ylab(sedr_label) +
-  coord_cartesian(ylim = plot_ylims) +
-  annotate("text", x = ann_x, y = ann_bot,
-           label = slope_annot, size = 8/.pt) +
-  annotate("text", x = ann_x, y = ann_bot - ann_step,
-           label = annot, size = 8/.pt) +
-  theme(
-    plot.title = element_text(size = 10),
-    axis.title.x = element_text(size = 8),
-    axis.title.y = element_text(size = 8),
-    legend.position = "bottom",
-    legend.direction = "horizontal"
+  s_lm      = summary(lm_wd)
+  wd_r2     = s_lm$adj.r.squared |> signif(digits = signif_dig)
+  wd_slope  = lm_wd$coefficients["wd_log"] |> unname() |> signif(digits = signif_dig)
+  f         = s_lm$fstatistic
+  wd_p      = pf(f["value"], f["numdf"], f["dendf"], lower.tail = FALSE) |> unname()
+  p_lab     = if (wd_p < 0.001) "< 0.001" else paste("=", signif(wd_p, signif_dig))
+  
+  sat_scales <- list(
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")),
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16))   # filled circle
   )
-return(p)
+  
+  annot = as.expression(bquote(adj. ~ R^2 * ": " * .(wd_r2) * "," ~ italic(p) ~ .(p_lab)))
+  slope_annot = paste("Slope:", wd_slope)
+  
+  v = visreg::visreg(lm_wd, plot = FALSE)
+  xname <- v$meta$x
+  res <- v$res
+  res$group <- df$saturated
+  
+  ylims <- range(c(res$visreg_res, v$fit$visreg_lwr, v$fit$visreg_upr,
+                   df$S_log), na.rm = TRUE)
+  
+  # annotation positions: below the data, with extra room added at the bottom
+  ann_x    <- mean(range(v$fit[[xname]]))
+  ann_step <- 0.08 * diff(ylims)
+  ann_bot  <- ylims[1] - 0.05 * diff(ylims)
+  
+  plot_ylims <- c(ylims[1] - 0.22 * diff(ylims), ylims[2])
+  
+  p <- ggplot() +
+    geom_ribbon(data = v$fit, aes(x = .data[[xname]], ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = .data[[xname]], y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = .data[[xname]], y = visreg_res, colour = group, shape = group)) +
+    sat_scales +
+    xlab(wd_lin_label) +
+    wd_x_scale +
+    ylab(sedr_label) +
+    coord_cartesian(ylim = plot_ylims) +
+    annotate("text", x = ann_x, y = ann_bot,
+             label = slope_annot, size = 8/.pt) +
+    annotate("text", x = ann_x, y = ann_bot - ann_step,
+             label = annot, size = 8/.pt) +
+    theme(
+      plot.title = element_text(size = 10),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      legend.position = "bottom",
+      legend.direction = "horizontal"
+    )
+  return(p)
 }
+
+ggsave("figs/wd_vs_sed_acc.pdf",
+       plot = plot_wd_vs_s(),
+       width = 9, height = 8, units = "cm",
+       bg = "white", device = cairo_pdf)
 
 ggsave("figs/wd_vs_sed_acc.pdf",
        plot = plot_wd_vs_s(),
@@ -1115,3 +1332,89 @@ re.df = data.frame(description = names(results), values = unname(results))
 write.csv(re.df, file = "data/res/results.csv")
 
 cat("Done. Results are under \"figs/\"and \"data/res/results.csv\"\n")
+
+#### Figure X: GLM plot, S / M / L vs. safe sampling distance ####
+# Paste after the "Figure 3: GLM plot" section (needs s1, m1, l1, df, labels,
+# vif_threshold, round_res, results and the plotting constants defined there).
+
+ssd_label = expression( log[10]* group("(", Safe~sampling~distance,")") ~ group("[",cm,"]") )
+
+## Fit on log scale with the same predictors as Fig. 3
+# rows with NA/Inf SSD (e.g. G outside the simulated Peclet range) are dropped;
+# group labels are carried along so they stay aligned with the residuals
+ssd_dat = data.frame(ssd = log10(df$safe_sampling_distance),
+                     s1 = s1, m1 = m1, l1 = l1,
+                     group = df$saturated) |>
+  dplyr::filter(is.finite(ssd))
+
+ssd_glm = glm(ssd ~ s1 + m1 + l1, data = ssd_dat)
+
+vif_ssd = car::vif(ssd_glm)
+if (any(vif_ssd > vif_threshold)) stop("Multicolinearity detected")
+
+rsq_part_ssd = rsq::rsq.partial(ssd_glm, adj = TRUE)
+
+# store results, matched by variable name rather than position
+pr2 = setNames(rsq_part_ssd$partial.rsq, rsq_part_ssd$variable)
+results[c("partial R2 ssd S", "partial R2 ssd D_b", "partial R2 ssd L")] =
+  round(pr2[c("s1", "m1", "l1")], round_res)
+results[c("coeff ssd S", "coeff ssd D_b", "coeff ssd L")] =
+  round(coef(ssd_glm)[c("s1", "m1", "l1")], round_res)
+
+## Generic partial-residual panel (same styling as Fig. 3)
+plot_partial_panel = function(model, xvar, xlab, ylab, ylims, rsq_obj, group){
+  v = visreg::visreg(model, xvar = xvar, plot = FALSE)
+  res = v$res
+  res$group = group
+  
+  rsq_val = rsq_obj$partial.rsq[rsq_obj$variable == xvar]
+  vv = paste(": ", round(rsq_val, 3))
+  annot = as.expression(bquote(partial ~ R^2 * .(vv)))
+  slope_annot = paste("Slope:", round(coef(model)[xvar], 3))
+  
+  x_mid = mean(range(res[[xvar]]))
+  y_top = max(ylims) - 0.05 * diff(ylims)
+  dy = 0.1 * diff(ylims)
+  
+  ggplot() +
+    geom_ribbon(data = v$fit, aes(x = .data[[xvar]], ymin = visreg_lwr, ymax = visreg_upr),
+                fill = "grey85") +
+    geom_line(data = v$fit, aes(x = .data[[xvar]], y = visreg_fit), linewidth = 1) +
+    geom_point(data = res, aes(x = .data[[xvar]], y = visreg_res, colour = group, shape = group)) +
+    scale_colour_manual(name = NULL,
+                        values = c("Not saturated" = "goldenrod",
+                                   "Saturated"     = "mediumpurple")) +
+    scale_shape_manual(name = NULL,
+                       values = c("Not saturated" = 17,    # filled triangle
+                                  "Saturated"     = 16)) + # filled circle
+    xlab(xlab) +
+    ylab(ylab) +
+    coord_cartesian(ylim = ylims) +   # zooms without dropping points (unlike ylim())
+    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
+          axis.title.y = element_text(size = y_axis_text_size_pts)) +
+    annotate("text", x = x_mid, y = y_top,      label = annot,       size = annot_size_pts / .pt) +
+    annotate("text", x = x_mid, y = y_top - dy, label = slope_annot, size = annot_size_pts / .pt)
+}
+
+plot_ssd_glm_fig = function(){
+  ssd_y_axis_lims = range(c(ssd_dat$ssd + log10(1.2), ssd_dat$ssd + log10(0.85)))
+  
+  p_s = plot_partial_panel(ssd_glm, "s1", sedr_label,      ssd_label, ssd_y_axis_lims, rsq_part_ssd, ssd_dat$group)
+  p_m = plot_partial_panel(ssd_glm, "m1", mix_label,       ssd_label, ssd_y_axis_lims, rsq_part_ssd, ssd_dat$group)
+  p_l = plot_partial_panel(ssd_glm, "l1", mix_depth_label, ssd_label, ssd_y_axis_lims, rsq_part_ssd, ssd_dat$group)
+  
+  ggpubr::ggarrange(p_s, p_m, p_l,
+                    nrow = 1, ncol = 3,
+                    labels = LETTERS[1:3],
+                    common.legend = TRUE,
+                    legend = "bottom")
+}
+
+ggsave("figs/ssd_glm_summary_fig.pdf",
+       plot = plot_ssd_glm_fig(),
+       width = 19,
+       height = 7,
+       units = "cm",
+       bg = "white")
+
+
