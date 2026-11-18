@@ -3,6 +3,33 @@ library(ggplot2)
 library(dotwhisker)
 library(gapminder)
 
+#### Figure settings (print: 116 mm wide, 600 dpi, 11 pt text) ####
+fig_width_mm = 116
+fig_dpi = 600
+fig_text_size_pt = 11
+theme_set(
+  theme_gray(base_size = fig_text_size_pt) +
+    theme(axis.text = element_text(size = rel(1)),
+          plot.title = element_text(size = rel(1)),
+          legend.text = element_text(size = rel(1)),
+          strip.text = element_text(size = rel(1)),
+          plot.margin = margin(t = 14, r = 5.5, b = 5.5, l = 5.5))
+)
+update_geom_defaults("text", list(size = fig_text_size_pt / .pt))
+fig_label_font = list(size = fig_text_size_pt, face = "bold")
+
+save_fig = function(filename, plot, height_mm){
+  #' @title save figure for print
+  #' @description saves plot as png with fixed print width and resolution
+  ggsave(filename = filename,
+         plot = plot,
+         width = fig_width_mm,
+         height = height_mm,
+         units = "mm",
+         dpi = fig_dpi,
+         bg = "white")
+}
+
 #### Set seed ####
 set.seed(296573) # generated via random.org
 
@@ -201,7 +228,7 @@ plot_adms = function(){
     xlim(0, age_lim) +
     scale_y_reverse(lim = c(depth_lim, 0)) +
     geom_density2d_filled(alpha = 0.5, show.legend = FALSE) +
-    ggtitle("Particle Distribution Core Po4") +
+    ggtitle("Particle Distribution\nCore Po4") +
     xlab("Age [a]") +
     ylab("Depth [cm]") +
     scale_color_viridis_c()
@@ -216,17 +243,18 @@ plot_adms = function(){
     scale_y_reverse(lim = c(depth_lim, 0)) +
     xlab("Age [a]") +
     ylab("Depth [cm]") +
-    ggtitle("Modelled Age-Depth Distribution") +
+    ggtitle("Modelled Age-Depth\nDistribution") +
     scale_color_viridis_c()
   #p2 
   #ggsave("figs/Po4_modeled.png", p2)
-  p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"))
+  p = ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1, labels = c("A", "B"),
+                        font.label = fig_label_font)
   return(p)
 
 }
-ggsave(filename = "figs/adms_po_and_modeled.png",
-       plot = plot_adms(),
-       bg = "white")
+save_fig(filename = "figs/adms_po_and_modeled.png",
+         plot = plot_adms(),
+         height_mm = 75)
 
 #### Figure 2: histogram of mixing intensity and F_mix ####
 fmix_label =  expression( F[mix] ~ " [-]" )  #"log10(Mixing depth) [cm]"
@@ -281,9 +309,9 @@ plot_dimless_mixing_and_tavg = function(){
              label = "Saturated")
   return(p)
 }
-ggsave(filename = "figs/dimless_mixing_and_tavg.png",
-       plot = plot_dimless_mixing_and_tavg(),
-       bg = "white")
+save_fig(filename = "figs/dimless_mixing_and_tavg.png",
+         plot = plot_dimless_mixing_and_tavg(),
+         height_mm = 80)
 
 
 pe_min_log = min(-log10(peclet_numbers))
@@ -345,11 +373,8 @@ wd_label =  expression( log[10]* group("(", Water~depth,")")  ~  group("[",m,"]"
 tavg_y_axis_lims = range(log10(c(df$tavg* 1.3, df$tavg * 0.8)))
 disorder_y_axis_lims = range(log10(c(1.1 * df$disorder, 0.9 * df$disorder)))
 
-two_col_width_cm = 12.28
-x_axis_text_size_pts = 7
-y_axis_text_size_pts = 7
-glm_plot_height_cm = 14
-annot_size_pts = 7
+
+mix_label_2line = expression(atop(log[10] * group("(", Biodiffusion, ")"), group("[", cm^2/a, "]")))
 
 plot_glm_summary_fig = function(){
   ## time averaging
@@ -361,12 +386,10 @@ plot_glm_summary_fig = function(){
   tavg_glm_plot_s = visreg::visreg(tavg_glm,xvar = "s1",
                                    gg = TRUE) +
     xlab(sedr_label) +
-    ylab(tavg_label) +
+    ylab(NULL) +
     ylim(tavg_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$tavg)) - 0.7, label = slope_annot)
   tavg_glm_plot_s
   
   # biodiffusion
@@ -375,13 +398,11 @@ plot_glm_summary_fig = function(){
   slope_annot = paste("Slope: ", round(coefficients(tavg_glm)["m1"], 3))
   tavg_glm_plot_m = visreg::visreg(tavg_glm,xvar = "m1",
                                    gg = TRUE) +
-    xlab(mix_label) +
-    ylab(tavg_label)  + 
+    xlab(mix_label_2line) +
+    ylab(NULL) +
     ylim(tavg_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$tavg)) - 0.7, label = slope_annot)
   
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
@@ -390,12 +411,10 @@ plot_glm_summary_fig = function(){
   tavg_glm_plot_l= visreg::visreg(tavg_glm,xvar = "l1",
                                   gg = TRUE) +
     xlab(mix_depth_label) +
-    ylab(tavg_label)  + 
+    ylab(NULL) +
     ylim(tavg_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)) - 0.5, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$tavg)) - 0.7, label = slope_annot)
   
   ## disorder
   rsq = rsq_part_disorder
@@ -406,12 +425,10 @@ plot_glm_summary_fig = function(){
   disorder_glm_plot_s = visreg::visreg(disorder_glm,xvar = "s1",
                                        gg = TRUE) +
     xlab(sedr_label) +
-    ylab(disorder_label)  +
+    ylab(NULL) +
     ylim(disorder_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$S))), y = max(log10(df$disorder)) - 0.2, label = slope_annot)
   
   # biodiffusion
   vv = paste(": ", round(rsq$partial.rsq[2], 3))
@@ -419,13 +436,11 @@ plot_glm_summary_fig = function(){
   slope_annot = paste("Slope:", round(coefficients(disorder_glm)["m1"], 3))
   disorder_glm_plot_m = visreg::visreg(disorder_glm,xvar = "m1",
                                        gg = TRUE) +
-    xlab(mix_label) +
-    ylab(disorder_label)  +
+    xlab(mix_label_2line) +
+    ylab(NULL) +
     ylim(disorder_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$M))), y = max(log10(df$disorder)) - 0.2, label = slope_annot)
   
   # mixing depth
   vv = paste(": ", round(rsq$partial.rsq[3], 3))
@@ -434,27 +449,34 @@ plot_glm_summary_fig = function(){
   disorder_glm_plot_l= visreg::visreg(disorder_glm,xvar = "l1",
                                       gg = TRUE) +
     xlab(mix_depth_label) +
-    ylab(disorder_label)  +
+    ylab(NULL) +
     ylim(disorder_y_axis_lims) +
-    theme(axis.title.x = element_text(size = x_axis_text_size_pts),
-          axis.title.y = element_text(size = y_axis_text_size_pts)) +
-    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)), label = annot, size = annot_size_pts / .pt) + 
-    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)) - 0.2, label = slope_annot, size = annot_size_pts / .pt)
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)), label = annot) + 
+    annotate("text", x = mean(range(log10(df$L))), y = max(log10(df$disorder)) - 0.2, label = slope_annot)
   
-  figure = ggpubr::ggarrange(tavg_glm_plot_s,  tavg_glm_plot_m, tavg_glm_plot_l,
-                          disorder_glm_plot_s,  disorder_glm_plot_m, disorder_glm_plot_l,
-                          nrow = 2, ncol = 3,
-                          labels = LETTERS[1:6])
+  # one column per dependent variable, with shared y axis label
+  y_title = function(label){
+    grid::textGrob(label, rot = 90,
+                   gp = grid::gpar(fontsize = fig_text_size_pt))
+  }
+  col_tavg = ggpubr::ggarrange(tavg_glm_plot_s, tavg_glm_plot_m, tavg_glm_plot_l,
+                               nrow = 3, ncol = 1,
+                               labels = LETTERS[1:3],
+                               font.label = fig_label_font)
+  col_tavg = ggpubr::annotate_figure(col_tavg, left = y_title(tavg_label))
+  col_disorder = ggpubr::ggarrange(disorder_glm_plot_s, disorder_glm_plot_m, disorder_glm_plot_l,
+                                   nrow = 3, ncol = 1,
+                                   labels = LETTERS[4:6],
+                                   font.label = fig_label_font)
+  col_disorder = ggpubr::annotate_figure(col_disorder, left = y_title(disorder_label))
+  figure = ggpubr::ggarrange(col_tavg, col_disorder, nrow = 1, ncol = 2)
   return(figure)
 }
 
 
-ggsave("figs/glm_summary_fig.png", 
-       plot = plot_glm_summary_fig(),
-       width = two_col_width_cm,
-       units = c("cm"),
-       height = glm_plot_height_cm,
-       bg = "white")
+save_fig(filename = "figs/glm_summary_fig.png",
+         plot = plot_glm_summary_fig(),
+         height_mm = 170)
 
 #### figure: water depth vs tavg and disorder ####
 signif_dig = 3
@@ -497,13 +519,14 @@ plot_wd_vs_params = function(){
              y = 1 * max(yrange),
              label = slope_annot)
   p = ggpubr::ggarrange(lm1, lm2, ncol = 2, nrow = 1,
-                          labels = LETTERS[1:2])
+                          labels = LETTERS[1:2],
+                          font.label = fig_label_font)
   return(p)
 }
 
-ggsave(filename = "figs/water_depth_vs_params.png",
-       plot = plot_wd_vs_params(),
-       bg = "white")
+save_fig(filename = "figs/water_depth_vs_params.png",
+         plot = plot_wd_vs_params(),
+         height_mm = 80)
 
 
 #### Figure: Overview of SML parameters ####
@@ -520,8 +543,8 @@ plot_sml_overview_fig = function(){
     ylab("Count")
   p_s =ggplot(df, aes(x = S)) +
     geom_histogram(bins = 30) +
-    scale_x_log10() +
-    xlab("log10(Sediment Acc. Rate) [cm/a]") +
+    scale_x_log10(breaks = 10^c(-4, -2, 0)) +
+    xlab(expression( log[10] (  Sed.~acc.)*""  ~  group("[",cm/a,"]") )) +
     ylab("Count")
   p_fmix = ggplot(df, aes(x = F_mix)) + 
     geom_histogram(bins = 30) +
@@ -537,7 +560,7 @@ plot_sml_overview_fig = function(){
       label = "Not\nsaturated") +
     annotate("text",
              x = 1.03,
-             y = 90,
+             y = 75,
              angle = 90,
              hjust = 0.5,
              vjust = 0.5,
@@ -545,18 +568,19 @@ plot_sml_overview_fig = function(){
   
   p = ggpubr::ggarrange(p_s, p_m, p_l, p_fmix,
                           labels = LETTERS[1:4],
+                          font.label = fig_label_font,
                           ncol = 2, nrow = 2)
   return(p)
 }
-ggsave(filename = "figs/sml_overview.png",
-       plot = plot_sml_overview_fig(),
-       bg = "white")
+save_fig(filename = "figs/sml_overview.png",
+         plot = plot_sml_overview_fig(),
+         height_mm = 110)
 
 #### Coefficient plot ####
 
 make_coeff_plots = function(){
-  dot_args = list(size = 3)
-  whisker_args = list(size = 1)
+  dot_args = list(size = 2)
+  whisker_args = list(linewidth = 0.8)
   y_axis_labels = labels = rev(c(
     expression(log[10](S)),
     expression(log[10](D[b])),
@@ -569,6 +593,7 @@ make_coeff_plots = function(){
     labs(x = "Regression coefficient", y = "Independent variables")   +
     scale_y_discrete(labels = y_axis_labels) +
     geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_x_continuous(breaks = scales::breaks_pretty(n = 3)) +
     theme(axis.text.y = element_text(angle = 45))
   a2 = dwplot(tavg_glm_std,
               dot_args = dot_args,
@@ -577,7 +602,9 @@ make_coeff_plots = function(){
     labs(x = "Beta coefficient", y = "Independent variables") +
     scale_y_discrete(labels = y_axis_labels)+
     geom_vline(xintercept = 0, linetype = "dashed") +
-    theme(axis.text.y = element_text(angle = 45))
+    scale_x_continuous(breaks = scales::breaks_pretty(n = 3)) +
+    theme(axis.text.y = element_blank(),
+          axis.title.y = element_blank())
   
   a3 = dwplot(disorder_glm,
               dot_args = dot_args,
@@ -586,6 +613,7 @@ make_coeff_plots = function(){
     labs(x = "Regression coefficient", y = "Independent variables") +
     scale_y_discrete(labels = y_axis_labels)+
     geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_x_continuous(breaks = scales::breaks_pretty(n = 3)) +
     theme(axis.text.y = element_text(angle = 45))
   a4 = dwplot(disorder_glm_std,
               dot_args = dot_args,
@@ -594,17 +622,21 @@ make_coeff_plots = function(){
     labs(x = "Beta coefficient", y = "Independent variables") +
     scale_y_discrete(labels = y_axis_labels)+
     geom_vline(xintercept = 0, linetype = "dashed") +
-    theme(axis.text.y = element_text(angle = 45))
+    scale_x_continuous(breaks = scales::breaks_pretty(n = 3)) +
+    theme(axis.text.y = element_blank(),
+          axis.title.y = element_blank())
   p = ggpubr:: ggarrange(a1, a2, a3, a4,
                          ncol = 2,
                          nrow = 2,
-                         labels = LETTERS[1:4])
+                         widths = c(1.35, 1),
+                         labels = LETTERS[1:4],
+                         font.label = fig_label_font)
   return(p)
 }
 
-ggsave(filename = "figs/coefficient_plots.png",
-       plot = make_coeff_plots(),
-       bg = "white")
+save_fig(filename = "figs/coefficient_plots.png",
+         plot = make_coeff_plots(),
+         height_mm = 110)
 
 #### Plot dimensionless ADD ####
 plot_dimless_add = function(){
@@ -627,7 +659,7 @@ plot_dimless_add = function(){
   
   fixed_depth_color = "black"
   fixed_age_color = "red"
-  transect_width = 2
+  transect_width = 1
   df = expand.grid(a, d)
   df$z = mapply(f, df$Var1, df$Var2)
   p1 = ggplot(df, aes(x = Var1, y = Var2, z = z)) +
@@ -661,6 +693,7 @@ plot_dimless_add = function(){
                color = fixed_depth_color) +
     coord_flip() +
     scale_x_reverse() +
+    scale_y_continuous(breaks = c(0, 0.5, 1)) +
     labs(x = "Depth [-]",
          y = expression("Density " ~ f[dis]),
          title = "")
@@ -672,6 +705,7 @@ plot_dimless_add = function(){
     geom_vline(xintercept = a_select,
                linetype = "dashed",
                color = fixed_age_color) +
+    scale_y_continuous(breaks = c(0, 0.5, 1)) +
     labs(x = "Age [-]",
          y = expression("Density " ~ f[tavg]),
          title = "")
@@ -683,17 +717,16 @@ plot_dimless_add = function(){
                         ncol = 2,
                         widths = c(2,1),
                         heights = c(2,1),
-                        labels = LETTERS[1:3])
+                        labels = LETTERS[1:3],
+                        font.label = fig_label_font)
   return(p)
 }
 
 
 
-ggsave(filename = "figs/dimless_add.png",
-       plot = plot_dimless_add(),
-       height = 7,
-       width = 7,
-       bg = "white")
+save_fig(filename = "figs/dimless_add.png",
+         plot = plot_dimless_add(),
+         height_mm = 116)
 
 
 #### Save results ####
