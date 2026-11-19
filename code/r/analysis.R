@@ -3,24 +3,34 @@ library(ggplot2)
 library(dotwhisker)
 library(gapminder)
 
-#### Figure settings (print: 116 mm wide, 600 dpi, 11 pt text) ####
+#### Figure settings (print: 116 mm wide, max. 203 mm high, 600 dpi) ####
 fig_width_mm = 116
+fig_max_height_mm = 203
 fig_dpi = 600
-fig_text_size_pt = 11
+# font sizes in pt
+fig_title_size_pt = 9        # plot titles
+fig_panel_label_size_pt = 10 # panel labels (A, B, ...)
+fig_axis_title_size_pt = 8   # axis and legend titles
+fig_tick_label_size_pt = 7   # tick labels, legend text, annotations
 theme_set(
-  theme_gray(base_size = fig_text_size_pt) +
-    theme(axis.text = element_text(size = rel(1)),
-          plot.title = element_text(size = rel(1)),
-          legend.text = element_text(size = rel(1)),
-          strip.text = element_text(size = rel(1)),
+  theme_gray(base_size = fig_axis_title_size_pt) +
+    theme(plot.title = element_text(size = fig_title_size_pt),
+          axis.title = element_text(size = fig_axis_title_size_pt),
+          legend.title = element_text(size = fig_axis_title_size_pt),
+          axis.text = element_text(size = fig_tick_label_size_pt),
+          legend.text = element_text(size = fig_tick_label_size_pt),
+          strip.text = element_text(size = fig_axis_title_size_pt),
           plot.margin = margin(t = 14, r = 5.5, b = 5.5, l = 5.5))
 )
-update_geom_defaults("text", list(size = fig_text_size_pt / .pt))
-fig_label_font = list(size = fig_text_size_pt, face = "bold")
+update_geom_defaults("text", list(size = fig_tick_label_size_pt / .pt))
+fig_label_font = list(size = fig_panel_label_size_pt, face = "bold")
 
 save_fig = function(filename, plot, height_mm){
   #' @title save figure for print
   #' @description saves plot as png with fixed print width and resolution
+  if (height_mm > fig_max_height_mm){
+    stop("Figure height exceeds maximum printing height of ", fig_max_height_mm, " mm")
+  }
   ggsave(filename = filename,
          plot = plot,
          width = fig_width_mm,
@@ -457,7 +467,7 @@ plot_glm_summary_fig = function(){
   # one column per dependent variable, with shared y axis label
   y_title = function(label){
     grid::textGrob(label, rot = 90,
-                   gp = grid::gpar(fontsize = fig_text_size_pt))
+                   gp = grid::gpar(fontsize = fig_axis_title_size_pt))
   }
   col_tavg = ggpubr::ggarrange(tavg_glm_plot_s, tavg_glm_plot_m, tavg_glm_plot_l,
                                nrow = 3, ncol = 1,
